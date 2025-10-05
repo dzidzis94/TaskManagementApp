@@ -1,0 +1,414 @@
+/*
+================================================================================
+|                                                                              |
+|                             MODERN STYLESHEET                              |
+|                                                                              |
+================================================================================
+*/
+
+/* -------------------- FONT IMPORT -------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* -------------------- CSS VARIABLES -------------------- */
+:root {
+    /* Color Palette */
+    --primary-color: #6a11cb;
+    --secondary-color: #2575fc;
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+
+    /* Background Colors */
+    --bg-color: #f4f7f6;
+    --bg-color-dark: #1a1a1a;
+    --card-bg-color: rgba(255, 255, 255, 0.6);
+    --card-bg-color-dark: rgba(30, 30, 30, 0.6);
+
+    /* Text Colors */
+    --text-color: #333;
+    --text-color-dark: #f1f1f1;
+    --text-muted: #6c757d;
+
+    /* Typography */
+    --font-family: 'Inter', sans-serif;
+    --font-size-base: 16px;
+    --line-height-base: 1.5;
+
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+
+    /* Borders & Shadows */
+    --border-radius: 0.5rem;
+    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --box-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+    /* Transitions */
+    --transition-speed: 0.3s;
+}
+
+/* -------------------- BASE STYLES -------------------- */
+body {
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-base);
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    transition: background-color var(--transition-speed), color var(--transition-speed);
+}
+
+/* -------------------- GLASS MORPHISM -------------------- */
+.glass-card {
+    background: var(--card-bg-color);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: var(--box-shadow);
+}
+
+/* -------------------- UTILITIES -------------------- */
+.gradient-text {
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* -------------------- LOGIN PAGE -------------------- */
+.login-page {
+    background: var(--primary-gradient);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-card {
+    width: 400px;
+}
+
+.login-card .card-header {
+    background: transparent;
+    border-bottom: none;
+    text-align: center;
+    padding-top: var(--spacing-lg);
+}
+
+.login-card .card-header h2 {
+    color: var(--text-color-dark);
+    font-weight: 700;
+}
+
+.login-card .form-control {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: var(--text-color-dark);
+}
+
+.login-card .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.login-card .btn-primary {
+    background: var(--primary-color);
+    border: none;
+    transition: background-color var(--transition-speed);
+}
+
+.login-card .btn-primary:hover {
+    background: var(--secondary-color);
+}
+
+/* -------------------- MAIN LAYOUT -------------------- */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 260px;
+    background: var(--primary-gradient);
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    transition: all var(--transition-speed) ease;
+}
+
+.sidebar .logo {
+    display: flex;
+    align-items: center;
+    color: #fff;
+    margin-bottom: var(--spacing-xl);
+}
+
+.sidebar .logo i {
+    font-size: 2rem;
+    margin-right: var(--spacing-md);
+}
+
+.sidebar .logo h5 {
+    margin: 0;
+    font-weight: 600;
+}
+
+.sidebar .nav-links {
+    flex-grow: 1;
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar .nav-links a {
+    display: flex;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    border-radius: var(--border-radius);
+    transition: all var(--transition-speed) ease;
+}
+
+.sidebar .nav-links a:hover,
+.sidebar .nav-links a.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.sidebar .nav-links a i {
+    margin-right: var(--spacing-md);
+}
+
+.main-content {
+    position: relative;
+    margin-left: 260px;
+    padding: var(--spacing-xl);
+    transition: all var(--transition-speed) ease;
+}
+
+.top-bar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    color: var(--text-color);
+}
+
+.user-profile img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: var(--spacing-md);
+}
+
+/* -------------------- TASK LIST PAGE -------------------- */
+.task-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.task-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.task-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--box-shadow-lg);
+}
+
+.task-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.task-card-header h5 {
+    font-weight: 600;
+    margin: 0;
+}
+
+.task-card-body {
+    padding: var(--spacing-md);
+    flex-grow: 1;
+}
+
+.task-card-footer {
+    padding: var(--spacing-md);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.task-meta-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.task-meta-item i {
+    margin-right: var(--spacing-sm);
+}
+
+.status-badge {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.status-badge.pending { background-color: #ffc107; }
+.status-badge.in-progress { background-color: #0dcaf0; }
+.status-badge.completed { background-color: #198754; }
+.status-badge.cancelled { background-color: #dc3545; }
+
+/* -------------------- INTERACTIVE FEATURES -------------------- */
+
+/* Page Transitions */
+body {
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+body.fade-in {
+    opacity: 1;
+}
+body.fade-out {
+    opacity: 0;
+}
+
+/* Toast Notifications */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1055;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast-notification {
+    padding: 15px 20px;
+    border-radius: var(--border-radius);
+    color: #fff;
+    font-size: 1rem;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast-notification.toast-success {
+    background: var(--success-gradient);
+}
+
+.toast-notification.toast-error {
+    background: var(--warning-gradient);
+}
+
+/* -------------------- FORMS -------------------- */
+.form-container {
+    background: #fff;
+    padding: var(--spacing-xl);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.form-container .form-control,
+.form-container .form-select {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius);
+    transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.form-container .form-control:focus,
+.form-container .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(106, 28, 203, 0.25);
+}
+
+.form-container .btn-primary {
+    background: var(--primary-gradient);
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-xl);
+}
+
+/* -------------------- TABLES -------------------- */
+.modern-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+}
+
+.modern-table thead th {
+    border: none;
+    padding: var(--spacing-md);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.modern-table tbody tr {
+    background: #fff;
+    box-shadow: var(--box-shadow);
+    border-radius: var(--border-radius);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.modern-table tbody tr:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--box-shadow-lg);
+}
+
+.modern-table tbody td {
+    padding: var(--spacing-lg);
+    vertical-align: middle;
+    border: none;
+}
+
+.modern-table tbody td:first-child {
+    border-top-left-radius: var(--border-radius);
+    border-bottom-left-radius: var(--border-radius);
+}
+
+.modern-table tbody td:last-child {
+    border-top-right-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+}
+
+.modern-table .badge {
+    background: var(--primary-gradient);
+    color: #fff;
+    padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.modern-table .btn-outline-primary {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.modern-table .btn-outline-primary:hover {
+    background: var(--primary-color);
+    color: #fff;
+}
