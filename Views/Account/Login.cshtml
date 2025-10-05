@@ -1,53 +1,54 @@
-﻿@{
-    ViewData["Title"] = "Pieteikšanās";
+@{
+    ViewData["Title"] = "Login";
+    Layout = null; // Use a null layout for a full-page design
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-4">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white text-center">
-                    <h4><i class="fas fa-sign-in-alt"></i> Pieteikšanās</h4>
-                </div>
-                <div class="card-body p-4">
-                    <form asp-action="Login" method="post">
-                        <div class="mb-3">
-                            <label for="email" class="form-label">E-pasts</label>
-                            <input type="email" class="form-control" id="email" name="email" required
-                                   placeholder="ievadiet e-pastu">
-                        </div>
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Parole</label>
-                            <input type="password" class="form-control" id="password" name="password" required
-                                   placeholder="ievadiet paroli">
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-sign-in-alt"></i> Pieteikties
-                        </button>
-                    </form>
-
-                    <hr class="my-4">
-
-                    <div class="test-accounts">
-                        <h6 class="text-center mb-3">Testa konti:</h6>
-                        <div class="card bg-light">
-                            <div class="card-body">
-                                <div class="small">
-                                    <strong><i class="fas fa-user-shield"></i> Administrators:</strong><br>
-                                    E-pasts: <code>admin@taskapp.com</code><br>
-                                    Parole: <code>Admin123!</code>
-                                </div>
-                                <hr>
-                                <div class="small">
-                                    <strong><i class="fas fa-user"></i> Parasts lietotājs:</strong><br>
-                                    E-pasts: <code>user@taskapp.com</code><br>
-                                    Parole: <code>User123!</code>
-                                </div>
-                            </div>
-                        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Task Management</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/modern.css" asp-append-version="true" />
+</head>
+<body class="login-page">
+    <div class="login-card glass-card">
+        <div class="card-header">
+            <h2 class="gradient-text">Welcome Back</h2>
+            <p class="text-white-50">Sign in to continue</p>
+        </div>
+        <div class="card-body p-4">
+            <form asp-action="Login" method="post">
+                <div class="mb-4">
+                    <label for="email" class="form-label text-white-50">Email</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0 text-white-50"><i class="fas fa-envelope"></i></span>
+                        <input type="email" class="form-control border-start-0" id="email" name="email" required placeholder="Enter your email">
                     </div>
                 </div>
+                <div class="mb-4">
+                    <label for="password" class="form-label text-white-50">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0 text-white-50"><i class="fas fa-lock"></i></span>
+                        <input type="password" class="form-control border-start-0" id="password" name="password" required placeholder="Enter your password">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-3">
+                    Sign In
+                </button>
+            </form>
+            <div class="text-center mt-4">
+                <p class="text-white-50 small">
+                    <strong>Test Accounts:</strong><br>
+                    Admin: <code>admin@taskapp.com</code> / <code>Admin123!</code><br>
+                    User: <code>user@taskapp.com</code> / <code>User123!</code>
+                </p>
             </div>
         </div>
     </div>
-</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

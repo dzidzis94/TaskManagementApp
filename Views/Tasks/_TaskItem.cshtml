@@ -1,143 +1,35 @@
-﻿@model TaskManagementApp.Models.TaskItem
-@using System.Security.Claims
+@model TaskManagementApp.Models.TaskItem
 
-<div class="task-item card mb-3">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-            <div class="flex-grow-1">
-                <div class="d-flex align-items-center">
-                    @if (Model.SubTasks?.Any() == true)
-                    {
-                    <button class="btn btn-sm btn-outline-secondary toggle-subtasks me-2"
-                            data-task-id="@Model.Id" title="Rādīt/paslēpt apakšuzdevumus">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    }
-                    else
-                    {
-                    <span class="me-2" style="width: 32px;"></span>
-                    }
+<div class="task-card glass-card">
+    <div class="task-card-header">
+        <h5 class="card-title">@Model.Title</h5>
+        <span class="status-badge @GetStatusBadgeClass(Model.Status)">
+            @Model.Status.GetDisplayName()
+        </span>
+    </div>
 
-                    <h5 class="card-title text-primary mb-0">
-                        @if (Model.ParentTaskId != null)
-                        {
-                        <span class="badge bg-secondary me-2">Līmenis: @GetTaskLevel(Model)</span>
-                        }
-                        @Model.Title
-                    </h5>
-                </div>
-
-                @if (!string.IsNullOrEmpty(Model.Description))
-                {
-                <p class="card-text mt-2">@Model.Description</p>
-                }
-
-                <div class="task-meta mt-2">
-                    <small class="text-muted">
-                        <i class="fas fa-user"></i> @(Model.AssignedUser?.FirstName ?? "Nav piešķirts")
-                    </small>
-                    <small class="text-muted ms-3">
-                        <i class="fas fa-calendar"></i> @(Model.DueDate?.ToString("dd.MM.yyyy") ?? "Nav termiņa")
-                    </small>
-                    <small class="text-muted ms-3">
-                        <i class="fas fa-clock"></i> @Model.CreatedAt.ToString("dd.MM.yyyy")
-                    </small>
-
-                    <!-- Vienkāršs izpildītāju rādītājs -->
-                    @if (Model.Status == TaskManagementApp.Models.TaskStatus.Completed && !string.IsNullOrEmpty(Model.CompletedByUsers))
-                    {
-                    <small class="text-success ms-3">
-                        <i class="fas fa-check-circle"></i> Izpildīja: @Model.CompletedByUsers.Split(',').Count() lietotāji
-                    </small>
-                    }
-
-                    <!-- Vienkāršs piešķirto lietotāju rādītājs -->
-                    @if (!string.IsNullOrEmpty(Model.AssignedUserIds))
-                    {
-                    <small class="text-info ms-3">
-                        <i class="fas fa-users"></i> Pievienojušies: @Model.AssignedUserIds.Split(',').Count() lietotāji
-                    </small>
-                    }
-                </div>
-            </div>
-
-            <div class="task-actions ms-3">
-                <span class="badge @GetStatusBadgeClass(Model.Status) mb-2 d-block">
-                    @Model.Status.GetDisplayName()
-                </span>
-
-                <div class="btn-group">
-                    <a href="@Url.Action("Details", new { id = Model.Id })"
-                       class="btn btn-sm btn-outline-info" title="Skatīt">
-                        <i class="fas fa-eye"></i>
-                    </a>
-
-                    @if (User.IsInRole("Admin"))
-                    {
-                    <a href="@Url.Action("Create", new { parentTaskId = Model.Id })"
-                       class="btn btn-sm btn-outline-success" title="Pievienot apakšuzdevumu">
-                        <i class="fas fa-plus"></i>
-                    </a>
-
-                    <a href="@Url.Action("Edit", new { id = Model.Id })"
-                       class="btn btn-sm btn-outline-primary" title="Rediģēt">
-                        <i class="fas fa-edit"></i>
-                    </a>
-
-                    <form asp-action="Delete" method="post" class="d-inline"
-                          onsubmit="return confirm('Vai tiešām vēlaties dzēst šo uzdevumu?');">
-                        <input type="hidden" name="id" value="@Model.Id" />
-                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Dzēst">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </form>
-                    }
-                </div>
-
-                <!-- Lietotāju darbības -->
-                <div class="mt-2">
-                    @if (User.Identity.IsAuthenticated)
-                    {
-                        <!-- Pievienošanās uzdevumam -->
-                    @if (Model.Status != TaskManagementApp.Models.TaskStatus.Completed &&
-                             Model.Status != TaskManagementApp.Models.TaskStatus.Cancelled)
-                        {
-                    <form asp-action="JoinTask" method="post" class="d-inline">
-                        <input type="hidden" name="id" value="@Model.Id" />
-                        <button type="submit" class="btn btn-sm btn-outline-success" title="Pievienoties uzdevumam">
-                            <i class="fas fa-user-plus"></i> Pievienoties
-                        </button>
-                    </form>
-                        }
-
- <!-- Atzīmēt kā pabeigtu -->
-                    @if (Model.Status != TaskManagementApp.Models.TaskStatus.Completed &&
-                             Model.Status != TaskManagementApp.Models.TaskStatus.Cancelled)
-                        {
-                    <form asp-action="MarkAsCompleted" method="post" class="d-inline">
-                        <input type="hidden" name="id" value="@Model.Id" />
-                        <button type="submit" class="btn btn-sm btn-outline-primary" title="Atzīmēt kā pabeigtu">
-                            <i class="fas fa-check"></i> Pabeigt
-                        </button>
-                    </form>
-                        }
-                    }
-                </div>
-            </div>
-        </div>
-
-        @if (Model.SubTasks?.Any() == true)
+    <div class="task-card-body">
+        @if (!string.IsNullOrEmpty(Model.Description))
         {
-        <div class="sub-tasks mt-3 ms-4 border-start ps-3" id="subtasks-@Model.Id">
-            <h6 class="text-muted mb-2">
-                <i class="fas fa-sitemap"></i> Apakšuzdevumi (@Model.SubTasks.Count):
-            </h6>
-            @foreach (var subTask in Model.SubTasks)
-                {
-            @await Html.PartialAsync("_TaskItem", subTask)
-                }
-        </div>
+            <p class="card-text text-muted">@Model.Description</p>
         }
+    </div>
+
+    <div class="task-card-footer">
+        <div class="task-meta">
+            <div class="task-meta-item">
+                <i class="fas fa-user"></i>
+                <span>@(Model.AssignedUser?.FirstName ?? "Unassigned")</span>
+            </div>
+            <div class="task-meta-item mt-2">
+                <i class="fas fa-calendar"></i>
+                <span>@(Model.DueDate?.ToString("MMM dd, yyyy") ?? "No due date")</span>
+            </div>
+        </div>
+        <div class="task-actions">
+            <a href="@Url.Action("Edit", "Tasks", new { id = Model.Id })" class="btn btn-sm btn-outline-light"><i class="fas fa-edit"></i></a>
+            <a href="@Url.Action("Details", "Tasks", new { id = Model.Id })" class="btn btn-sm btn-outline-light"><i class="fas fa-eye"></i></a>
+        </div>
     </div>
 </div>
 
@@ -146,23 +38,11 @@
     {
         return status switch
         {
-            TaskManagementApp.Models.TaskStatus.Pending => "bg-warning",
-            TaskManagementApp.Models.TaskStatus.InProgress => "bg-info",
-            TaskManagementApp.Models.TaskStatus.Completed => "bg-success",
-            TaskManagementApp.Models.TaskStatus.Cancelled => "bg-danger",
-            _ => "bg-secondary"
+            TaskManagementApp.Models.TaskStatus.Pending => "pending",
+            TaskManagementApp.Models.TaskStatus.InProgress => "in-progress",
+            TaskManagementApp.Models.TaskStatus.Completed => "completed",
+            TaskManagementApp.Models.TaskStatus.Cancelled => "cancelled",
+            _ => ""
         };
-    }
-
-    int GetTaskLevel(TaskManagementApp.Models.TaskItem task)
-    {
-        int level = 1;
-        var currentTask = task;
-        while (currentTask.ParentTaskId != null)
-        {
-            level++;
-            break;
-        }
-        return level;
     }
 }

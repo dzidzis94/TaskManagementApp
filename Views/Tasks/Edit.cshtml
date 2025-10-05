@@ -1,76 +1,59 @@
-﻿@model TaskManagementApp.ViewModels.EditTaskViewModel
+@model TaskManagementApp.ViewModels.EditTaskViewModel
 
 @{
-    ViewData["Title"] = "Rediģēt uzdevumu";
+    ViewData["Title"] = "Edit Task";
 }
 
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h2><i class="fas fa-edit"></i> @ViewData["Title"]</h2>
-                </div>
-                <div class="card-body">
-                    <form asp-action="Edit">
-                        <input type="hidden" asp-for="Id" />
-                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+<h1 class="gradient-text">@ViewData["Title"]</h1>
+<p class="text-muted mb-4">Update the details of your task below.</p>
 
-                        <div class="mb-3">
-                            <label asp-for="Title" class="form-label"></label>
-                            <input asp-for="Title" class="form-control" />
-                            <span asp-validation-for="Title" class="text-danger"></span>
-                        </div>
+<div class="form-container">
+    <form asp-action="Edit" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="Id" />
 
-                        <div class="mb-3">
-                            <label asp-for="Description" class="form-label"></label>
-                            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
-                            <span asp-validation-for="Description" class="text-danger"></span>
-                        </div>
+        <div class="mb-4">
+            <label asp-for="Title" class="form-label fw-bold"></label>
+            <input asp-for="Title" class="form-control form-control-lg" />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label asp-for="DueDate" class="form-label"></label>
-                                    <input asp-for="DueDate" type="date" class="form-control" />
-                                    <span asp-validation-for="DueDate" class="text-danger"></span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label asp-for="Status" class="form-label"></label>
-                                    <select asp-for="Status" class="form-select"
-                                            asp-items="Html.GetEnumSelectList<TaskManagementApp.Models.TaskStatus>()"></select>
-                                    <span asp-validation-for="Status" class="text-danger"></span>
-                                </div>
-                            </div>
-                        </div>
+        <div class="mb-4">
+            <label asp-for="Description" class="form-label fw-bold"></label>
+            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
 
-                        <div class="mb-3">
-                            <label asp-for="AssignedUserId" class="form-label"></label>
-                            <select asp-for="AssignedUserId" class="form-select">
-                                <option value="">-- Izvēlieties lietotāju --</option>
-                                @foreach (var user in ViewBag.Users)
-                                {
-                                <option value="@user.Id">@user.FirstName @user.LastName</option>
-                                }
-                            </select>
-                            <span asp-validation-for="AssignedUserId" class="text-danger"></span>
-                        </div>
-
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Saglabāt izmaiņas
-                            </button>
-                            <a href="@Url.Action("Details", new { id = Model.Id })" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Atcelt
-                            </a>
-                        </div>
-                    </form>
-                </div>
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <label asp-for="DueDate" class="form-label fw-bold"></label>
+                <input asp-for="DueDate" type="date" class="form-control" />
+                <span asp-validation-for="DueDate" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-4">
+                <label asp-for="Status" class="form-label fw-bold"></label>
+                <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<TaskManagementApp.Models.TaskStatus>()"></select>
+                <span asp-validation-for="Status" class="text-danger"></span>
             </div>
         </div>
-    </div>
+
+        <div class="mb-4">
+            <label asp-for="AssignedUserId" class="form-label fw-bold">Assign To</label>
+            <select asp-for="AssignedUserId" class="form-select" asp-items="@(new SelectList(ViewBag.Users, "Id", "UserName"))">
+                <option value="">-- Unassigned --</option>
+            </select>
+            <span asp-validation-for="AssignedUserId" class="text-danger"></span>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+            <a href="@Url.Action("Index")" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </form>
 </div>
 
 @section Scripts {
