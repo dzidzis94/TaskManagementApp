@@ -1,0 +1,102 @@
+﻿@model TaskManagementApp.Models.TaskItem
+
+@{
+    ViewData["Title"] = "Uzdevuma detaļas";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-info-circle"></i> Uzdevuma detaļas</h1>
+        <div>
+            <a href="@Url.Action("Index")" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Atpakaļ
+            </a>
+            @if (User.IsInRole("Admin"))
+            {
+            <a href="@Url.Action("Edit", new { id = Model.Id })" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Rediģēt
+            </a>
+            }
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">@Model.Title</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h5>Apraksts</h5>
+                    <p class="text-muted">@(string.IsNullOrEmpty(Model.Description) ? "Nav apraksta" : Model.Description)</p>
+
+                    <div class="row mt-4">
+                        <div class="col-sm-6">
+                            <h6>Pamatinformācija</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Statuss:</strong> <span class="badge @GetStatusBadgeClass(Model.Status)">@Model.Status.GetDisplayName()</span></li>
+                                <li><strong>Izveidots:</strong> @Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</li>
+                                <li><strong>Termiņš:</strong> @(Model.DueDate?.ToString("dd.MM.yyyy") ?? "Nav noteikts")</li>
+                            </ul>
+                        </div>
+                        <div class="col-sm-6">
+                            <h6>Piešķiršana</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Izveidotājs:</strong> @Model.CreatedBy?.FirstName @Model.CreatedBy?.LastName</li>
+                                <li><strong>Piešķirts:</strong> @(Model.AssignedUser?.FirstName ?? "Nav piešķirts") @Model.AssignedUser?.LastName</li>
+                                @if (Model.ParentTask != null)
+                                {
+                                <li><strong>Vecākuzdevums:</strong> @Model.ParentTask.Title</li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.SubTasks.Any())
+            {
+            <div class="mt-4">
+                <h5>Apakšuzdevumi (@Model.SubTasks.Count)</h5>
+                <div class="sub-tasks">
+                    @foreach (var subTask in Model.SubTasks.OrderBy(t => t.CreatedAt))
+                        {
+                    <div class="card mb-2">
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">@subTask.Title</h6>
+                                    <small class="text-muted">
+                                        Statuss: <span class="badge @GetStatusBadgeClass(subTask.Status)">@subTask.Status.GetDisplayName()</span> |
+                                        Termiņš: @(subTask.DueDate?.ToString("dd.MM.yyyy") ?? "Nav noteikts")
+                                    </small>
+                                </div>
+                                <div>
+                                    <a href="@Url.Action("Details", new { id = subTask.Id })" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                        }
+                </div>
+            </div>
+            }
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetStatusBadgeClass(TaskManagementApp.Models.TaskStatus status)
+    {
+        return status switch
+        {
+            TaskManagementApp.Models.TaskStatus.Pending => "bg-warning",
+            TaskManagementApp.Models.TaskStatus.InProgress => "bg-info",
+            TaskManagementApp.Models.TaskStatus.Completed => "bg-success",
+            TaskManagementApp.Models.TaskStatus.Cancelled => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}

@@ -1,0 +1,53 @@
+﻿@{
+    ViewData["Title"] = "Pieteikšanās";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4><i class="fas fa-sign-in-alt"></i> Pieteikšanās</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Login" method="post">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">E-pasts</label>
+                            <input type="email" class="form-control" id="email" name="email" required
+                                   placeholder="ievadiet e-pastu">
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Parole</label>
+                            <input type="password" class="form-control" id="password" name="password" required
+                                   placeholder="ievadiet paroli">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-sign-in-alt"></i> Pieteikties
+                        </button>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <div class="test-accounts">
+                        <h6 class="text-center mb-3">Testa konti:</h6>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="small">
+                                    <strong><i class="fas fa-user-shield"></i> Administrators:</strong><br>
+                                    E-pasts: <code>admin@taskapp.com</code><br>
+                                    Parole: <code>Admin123!</code>
+                                </div>
+                                <hr>
+                                <div class="small">
+                                    <strong><i class="fas fa-user"></i> Parasts lietotājs:</strong><br>
+                                    E-pasts: <code>user@taskapp.com</code><br>
+                                    Parole: <code>User123!</code>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
