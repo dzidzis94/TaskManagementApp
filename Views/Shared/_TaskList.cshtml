@@ -1,0 +1,16 @@
+@model IEnumerable<TaskManagementApp.Models.TaskItem>
+
+<div class="task-list-container ps-4">
+    @if (Model != null && Model.Any())
+    {
+        foreach (var task in Model)
+        {
+            @await Html.PartialAsync("_TaskCardPartial", task)
+        }
+    }
+    else
+    {
+        @* This part will likely not be shown in the recursive view, but is good for the initial call *@
+        <p class="text-white-50">No tasks to display.</p>
+    }
+</div>

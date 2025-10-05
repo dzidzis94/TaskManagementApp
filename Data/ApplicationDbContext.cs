@@ -9,49 +9,75 @@ namespace TaskManagementApp.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
         public DbSet<TaskItem> Tasks { get; set; }
+        public DbSet<Project> Projects { get; set; }
+        public DbSet<TaskAssignment> TaskAssignments { get; set; }
+        public DbSet<TaskCompletion> TaskCompletions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
-            // Uzdevuma konfigurācija
+            // Project Configuration
+            builder.Entity<Project>(entity =>
+            {
+                entity.HasKey(p => p.Id);
+                entity.Property(p => p.Name).IsRequired().HasMaxLength(100);
+                entity.HasMany(p => p.Tasks)
+                      .WithOne(t => t.Project)
+                      .HasForeignKey(t => t.ProjectId)
+                      .OnDelete(DeleteBehavior.Cascade); // If a project is deleted, its tasks are also deleted.
+            });
+
+            // TaskItem Configuration
             builder.Entity<TaskItem>(entity =>
             {
                 entity.HasKey(t => t.Id);
 
-                // Rekursīvā saite
+                // Recursive relationship for subtasks
                 entity.HasOne(t => t.ParentTask)
                     .WithMany(t => t.SubTasks)
                     .HasForeignKey(t => t.ParentTaskId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.Restrict); // Prevent deleting a task with subtasks
 
-                // Saite uz piešķirto lietotāju - PIEVIENO IsRequired(false)
-                entity.HasOne(t => t.AssignedUser)
-                    .WithMany(u => u.AssignedTasks)
-                    .HasForeignKey(t => t.AssignedUserId)
-                    .IsRequired(false) // ⬅️ ŠIS IR ĻOTI SVARĪGI!
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                // Saite uz izveidotāju - PIEVIENO IsRequired(false)
+                // Relationship with Creator (ApplicationUser)
                 entity.HasOne(t => t.CreatedBy)
-                    .WithMany(u => u.CreatedTasks)
+                    .WithMany() // A user can create many tasks
                     .HasForeignKey(t => t.CreatedById)
-                    .IsRequired(false) // ⬅️ ŠIS IR ĻOTI SVARĪGI!
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull); // Keep task if creator is deleted
 
-                entity.Property(t => t.Title)
-                    .IsRequired()
-                    .HasMaxLength(200);
+                entity.Property(t => t.Title).IsRequired().HasMaxLength(200);
+                entity.Property(t => t.Description).HasColumnType("nvarchar(max)");
+            });
 
-                entity.Property(t => t.Description)
-                    .HasColumnType("nvarchar(max)");
+            // TaskAssignment (Many-to-Many between Task and User)
+            builder.Entity<TaskAssignment>(entity =>
+            {
+                entity.HasKey(ta => ta.Id);
+                entity.HasOne(ta => ta.Task)
+                      .WithMany(t => t.TaskAssignments)
+                      .HasForeignKey(ta => ta.TaskId)
+                      .OnDelete(DeleteBehavior.Cascade);
 
-                // PIEVIENO ARĪ ŠO - lai ļautu AssignedUserId būt NULL datu bāzē
-                entity.Property(t => t.AssignedUserId)
-                    .IsRequired(false);
+                entity.HasOne(ta => ta.User)
+                      .WithMany() // A user can be assigned to many tasks
+                      .HasForeignKey(ta => ta.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
 
-                entity.Property(t => t.CreatedById)
-                    .IsRequired(false);
+            // TaskCompletion Configuration
+            builder.Entity<TaskCompletion>(entity =>
+            {
+                entity.HasKey(tc => tc.Id);
+                entity.HasOne(tc => tc.Task)
+                      .WithMany(t => t.TaskCompletions)
+                      .HasForeignKey(tc => tc.TaskId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(tc => tc.User)
+                      .WithMany() // A user can complete many tasks
+                      .HasForeignKey(tc => tc.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

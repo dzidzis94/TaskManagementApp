@@ -4,56 +4,61 @@
     ViewData["Title"] = "Edit Task";
 }
 
-<h1 class="gradient-text">@ViewData["Title"]</h1>
-<p class="text-muted mb-4">Update the details of your task below.</p>
+<div class="container mt-4">
+    <h1 class="text-white">@ViewData["Title"]</h1>
+    <hr class="border-light" />
 
-<div class="form-container">
-    <form asp-action="Edit" method="post">
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-        <input type="hidden" asp-for="Id" />
+    <div class="card bg-dark-glass">
+        <div class="card-body">
+            <form asp-action="Edit">
+                <input type="hidden" asp-for="Id" />
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-        <div class="mb-4">
-            <label asp-for="Title" class="form-label fw-bold"></label>
-            <input asp-for="Title" class="form-control form-control-lg" />
-            <span asp-validation-for="Title" class="text-danger"></span>
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label text-white"></label>
+                    <input asp-for="Title" class="form-control bg-dark-glass text-white" />
+                    <span asp-validation-for="Title" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label text-white"></label>
+                    <textarea asp-for="Description" class="form-control bg-dark-glass text-white" rows="3"></textarea>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="DueDate" class="form-label text-white"></label>
+                        <input asp-for="DueDate" type="date" class="form-control bg-dark-glass text-white" />
+                        <span asp-validation-for="DueDate" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="Status" class="form-label text-white"></label>
+                        <select asp-for="Status" class="form-select bg-dark-glass text-white" asp-items="Html.GetEnumSelectList<TaskManagementApp.Models.TaskStatus>()"></select>
+                        <span asp-validation-for="Status" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="ProjectId" class="form-label text-white"></label>
+                        <select asp-for="ProjectId" class="form-select bg-dark-glass text-white" asp-items="@(new SelectList(ViewBag.Projects, "Id", "Name"))">
+                            <option value="">-- No Project --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="SelectedUserIds" class="form-label text-white">Assigned Users</label>
+                    <select asp-for="SelectedUserIds" class="form-control bg-dark-glass text-white" multiple="multiple" style="height: 150px;" asp-items="@(new SelectList(ViewBag.Users, "Id", "UserName"))">
+                    </select>
+                    <small class="form-text text-white-50">Hold down CTRL (or Command on Mac) to select multiple users.</small>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary me-2"><i class="fas fa-save"></i> Save Changes</button>
+                    <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Cancel</a>
+                </div>
+            </form>
         </div>
-
-        <div class="mb-4">
-            <label asp-for="Description" class="form-label fw-bold"></label>
-            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
-            <span asp-validation-for="Description" class="text-danger"></span>
-        </div>
-
-        <div class="row">
-            <div class="col-md-6 mb-4">
-                <label asp-for="DueDate" class="form-label fw-bold"></label>
-                <input asp-for="DueDate" type="date" class="form-control" />
-                <span asp-validation-for="DueDate" class="text-danger"></span>
-            </div>
-            <div class="col-md-6 mb-4">
-                <label asp-for="Status" class="form-label fw-bold"></label>
-                <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<TaskManagementApp.Models.TaskStatus>()"></select>
-                <span asp-validation-for="Status" class="text-danger"></span>
-            </div>
-        </div>
-
-        <div class="mb-4">
-            <label asp-for="AssignedUserId" class="form-label fw-bold">Assign To</label>
-            <select asp-for="AssignedUserId" class="form-select" asp-items="@(new SelectList(ViewBag.Users, "Id", "UserName"))">
-                <option value="">-- Unassigned --</option>
-            </select>
-            <span asp-validation-for="AssignedUserId" class="text-danger"></span>
-        </div>
-
-        <div class="d-flex gap-2 mt-3">
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i> Save Changes
-            </button>
-            <a href="@Url.Action("Index")" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back to List
-            </a>
-        </div>
-    </form>
+    </div>
 </div>
 
 @section Scripts {

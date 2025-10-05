@@ -37,28 +37,20 @@ namespace TaskManagementApp.Models
         [Display(Name = "Apakšuzdevumi")]
         public virtual ICollection<TaskItem> SubTasks { get; set; } = new List<TaskItem>();
 
-        // Viena lietotāja piešķiršana - MAINĀM UZ NULLABLE
-        [Display(Name = "Piešķirtais lietotājs")]
-        public string? AssignedUserId { get; set; } // ⬅️ PIEVIENO ?
+        [Display(Name = "Projekts")]
+        public int? ProjectId { get; set; }
 
-        [ForeignKey("AssignedUserId")]
-        [Display(Name = "Piešķirtais lietotājs")]
-        public virtual ApplicationUser? AssignedUser { get; set; } // ⬅️ PIEVIENO ?
+        [ForeignKey("ProjectId")]
+        public virtual Project? Project { get; set; }
 
         [Display(Name = "Izveidotājs")]
-        public string? CreatedById { get; set; } // ⬅️ PIEVIENO ?
+        public string? CreatedById { get; set; }
 
         [ForeignKey("CreatedById")]
-        [Display(Name = "Izveidotājs")]
-        public virtual ApplicationUser? CreatedBy { get; set; } // ⬅️ PIEVIENO ?
+        public virtual ApplicationUser? CreatedBy { get; set; }
 
-        // Vienkāršs veids kā glabāt vairākus izpildītājus (kā komats atdalīta virkne)
-        [Display(Name = "Izpildītāji")]
-        public string? CompletedByUsers { get; set; } // ⬅️ PIEVIENO ?
-
-        // Vienkāršs veids kā glabāt vairākus piešķirtos lietotājus
-        [Display(Name = "Piešķirtie lietotāji")]
-        public string? AssignedUserIds { get; set; } // ⬅️ PIEVIENO ?
+        public virtual ICollection<TaskAssignment> TaskAssignments { get; set; } = new List<TaskAssignment>();
+        public virtual ICollection<TaskCompletion> TaskCompletions { get; set; } = new List<TaskCompletion>();
     }
 
     public enum TaskStatus

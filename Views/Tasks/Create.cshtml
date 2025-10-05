@@ -1,55 +1,101 @@
 @model TaskManagementApp.ViewModels.CreateTaskViewModel
 
 @{
-    ViewData["Title"] = "Create a New Task";
+    ViewData["Title"] = "Create Task";
+    var parentTaskTitle = ViewBag.ParentTaskTitle as string;
 }
 
-<h1 class="gradient-text">@ViewData["Title"]</h1>
-<p class="text-muted mb-4">Fill out the details below to create a new task.</p>
+<div class="container mt-4">
+    <h1 class="text-white">@ViewData["Title"]</h1>
+    @if (!string.IsNullOrEmpty(parentTaskTitle))
+    {
+        <h4 class="text-white-50">As a sub-task for: @parentTaskTitle</h4>
+    }
+    <hr class="border-light" />
 
-<div class="form-container">
-    <form asp-action="Create" method="post">
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-        <input type="hidden" asp-for="ParentTaskId" />
+    <div class="card bg-dark-glass">
+        <div class="card-body">
+            <form asp-action="Create">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input type="hidden" asp-for="ParentTaskId" />
 
-        <div class="mb-4">
-            <label asp-for="Title" class="form-label fw-bold"></label>
-            <input asp-for="Title" class="form-control form-control-lg" placeholder="e.g., Design the new dashboard" />
-            <span asp-validation-for="Title" class="text-danger"></span>
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label text-white"></label>
+                    <input asp-for="Title" class="form-control bg-dark-glass text-white" />
+                    <span asp-validation-for="Title" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label text-white"></label>
+                    <textarea asp-for="Description" class="form-control bg-dark-glass text-white" rows="3"></textarea>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="DueDate" class="form-label text-white"></label>
+                        <input asp-for="DueDate" type="date" class="form-control bg-dark-glass text-white" />
+                        <span asp-validation-for="DueDate" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="ProjectId" class="form-label text-white"></label>
+                        <select asp-for="ProjectId" class="form-select bg-dark-glass text-white" asp-items="@(new SelectList(ViewBag.Projects, "Id", "Name"))">
+                            <option value="">-- No Project --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white">Assign To</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" asp-for="AssignmentType" id="assignSpecific" value="SpecificUsers" checked>
+                        <label class="form-check-label text-white" for="assignSpecific">
+                            Specific User(s)
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" asp-for="AssignmentType" id="assignAll" value="AllUsers">
+                        <label class="form-check-label text-white" for="assignAll">
+                            All Users
+                        </label>
+                    </div>
+                </div>
+
+                <div id="user-selection-container" class="mb-3">
+                    <label asp-for="SelectedUserIds" class="form-label text-white"></label>
+                    <select asp-for="SelectedUserIds" class="form-control bg-dark-glass text-white" multiple="multiple" style="height: 150px;" asp-items="@(new SelectList(ViewBag.Users, "Id", "UserName"))">
+                    </select>
+                    <small class="form-text text-white-50">Hold down CTRL (or Command on Mac) to select multiple users.</small>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-success me-2"><i class="fas fa-save"></i> Create</button>
+                    <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Cancel</a>
+                </div>
+            </form>
         </div>
-
-        <div class="mb-4">
-            <label asp-for="Description" class="form-label fw-bold"></label>
-            <textarea asp-for="Description" class="form-control" rows="4" placeholder="Add a more detailed description..."></textarea>
-            <span asp-validation-for="Description" class="text-danger"></span>
-        </div>
-
-        <div class="row">
-            <div class="col-md-6 mb-4">
-                <label asp-for="DueDate" class="form-label fw-bold"></label>
-                <input asp-for="DueDate" type="date" class="form-control" />
-                <span asp-validation-for="DueDate" class="text-danger"></span>
-            </div>
-            <div class="col-md-6 mb-4">
-                <label asp-for="AssignedUserId" class="form-label fw-bold">Assign To</label>
-                <select asp-for="AssignedUserId" class="form-select" asp-items="@(new SelectList(ViewBag.Users, "Id", "UserName"))">
-                    <option value="">-- Select a user --</option>
-                </select>
-                <span asp-validation-for="AssignedUserId" class="text-danger"></span>
-            </div>
-        </div>
-
-        <div class="d-flex gap-2 mt-3">
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i> Create Task
-            </button>
-            <a href="@Url.Action("Index")" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Cancel
-            </a>
-        </div>
-    </form>
+    </div>
 </div>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const assignmentTypeRadios = document.querySelectorAll('input[name="AssignmentType"]');
+            const userSelectionContainer = document.getElementById('user-selection-container');
+
+            function toggleUserSelection() {
+                if (document.getElementById('assignSpecific').checked) {
+                    userSelectionContainer.style.display = 'block';
+                } else {
+                    userSelectionContainer.style.display = 'none';
+                }
+            }
+
+            assignmentTypeRadios.forEach(radio => radio.addEventListener('change', toggleUserSelection));
+
+            // Initial check
+            toggleUserSelection();
+        });
+    </script>
 }
