@@ -55,19 +55,27 @@ body {
     font-family: var(--font-family);
     font-size: var(--font-size-base);
     line-height: var(--line-height-base);
-    color: var(--text-color);
-    background-color: var(--bg-color);
+    color: var(--text-color-dark); /* Default to dark theme text */
+    background-color: var(--bg-color-dark); /* Default to dark theme background */
     transition: background-color var(--transition-speed), color var(--transition-speed);
 }
 
 /* -------------------- GLASS MORPHISM -------------------- */
-.glass-card {
-    background: var(--card-bg-color);
+.glass-card, .bg-dark-glass {
+    background: var(--card-bg-color-dark);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border-radius: var(--border-radius);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: var(--box-shadow);
+}
+
+.text-white-50 {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.text-white-70 {
+    color: rgba(255, 255, 255, 0.8) !important;
 }
 
 /* -------------------- UTILITIES -------------------- */

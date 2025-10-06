@@ -18,7 +18,7 @@
 
         <ul class="nav-links">
             <li>
-                <a href="@Url.Action("Index", "Home")" class="nav-link @(ViewContext.RouteData.Values["controller"].ToString() == "Home" ? "active" : "")">
+                <a href="@Url.Action("Index", "Dashboard")" class="nav-link @(new[] {"Dashboard", "Home"}.Contains(ViewContext.RouteData.Values["controller"].ToString()) ? "active" : "")">
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Dashboard</span>
                 </a>
