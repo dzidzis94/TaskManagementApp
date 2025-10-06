@@ -45,24 +45,61 @@ namespace TaskManagementApp.Controllers
         }
 
         // GET: Projects/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
+            ViewBag.ProjectTemplates = await _context.ProjectTemplates.ToListAsync();
             return View();
         }
 
         // POST: Projects/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Name,Description,IsPublic")] Project project)
+        public async Task<IActionResult> Create([Bind("Name,Description,IsPublic")] Project project, int? templateId)
         {
             if (ModelState.IsValid)
             {
                 _context.Add(project);
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(); // First save to get the project Id
+
+                if (templateId.HasValue)
+                {
+                    var template = await _context.ProjectTemplates
+                        .Include(t => t.Sections)
+                        .ThenInclude(s => s.ChildSections)
+                        .FirstOrDefaultAsync(t => t.Id == templateId.Value);
+
+                    if (template != null)
+                    {
+                        foreach (var section in template.Sections.Where(s => s.ParentSectionId == null))
+                        {
+                            CreateTaskFromSection(section, project, null);
+                        }
+                        await _context.SaveChangesAsync(); // Second save for all the tasks
+                    }
+                }
+
                 TempData["SuccessMessage"] = "Project created successfully!";
                 return RedirectToAction(nameof(Index));
             }
+            ViewBag.ProjectTemplates = await _context.ProjectTemplates.ToListAsync();
             return View(project);
+        }
+
+        private void CreateTaskFromSection(TemplateSection section, Project project, TaskItem parentTask)
+        {
+            var task = new TaskItem
+            {
+                Title = section.Title,
+                Description = section.Description,
+                ProjectId = project.Id,
+                ParentTask = parentTask
+            };
+            _context.Tasks.Add(task);
+
+            foreach (var childSection in section.ChildSections)
+            {
+                CreateTaskFromSection(childSection, project, task);
+            }
         }
 
         // GET: Projects/Edit/5

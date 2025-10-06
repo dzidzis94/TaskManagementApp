@@ -19,7 +19,7 @@
         <div class="task-meta">
             <div class="task-meta-item">
                 <i class="fas fa-user"></i>
-                <span>@(Model.AssignedUser?.FirstName ?? "Unassigned")</span>
+                <span>@(Model.TaskAssignments.FirstOrDefault()?.User?.FirstName ?? "Unassigned")</span>
             </div>
             <div class="task-meta-item mt-2">
                 <i class="fas fa-calendar"></i>

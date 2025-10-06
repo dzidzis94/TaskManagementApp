@@ -71,7 +71,7 @@ using (var scope = app.Services.CreateScope())
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
         // Pievieno migrācijas
-       // context.Database.Migrate();
+        context.Database.Migrate();
 
         // Inicializē datus
         await SeedData.Initialize(services);
