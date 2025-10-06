@@ -29,13 +29,13 @@ namespace TaskManagementApp.Controllers
         public async Task<IActionResult> Index(int? projectId)
         {
             ViewBag.ProjectId = projectId;
+
             var query = _context.Tasks
                 .Include(t => t.Project)
-                .Include(t => t.TaskAssignments)
-                    .ThenInclude(ta => ta.User)
+                .Include(t => t.TaskAssignments).ThenInclude(ta => ta.User)
                 .Include(t => t.TaskCompletions)
                 .Include(t => t.CreatedBy)
-                .Where(t => t.ParentTaskId == null); // Only root tasks
+                .AsQueryable();
 
             if (projectId.HasValue)
             {
@@ -49,52 +49,32 @@ namespace TaskManagementApp.Controllers
                 ViewBag.ProjectName = "General Tasks";
             }
 
-            var rootTasks = await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
+            var allTasksInContext = await query.ToListAsync();
+            var taskDictionary = allTasksInContext.ToDictionary(t => t.Id);
+            var rootTasks = new List<TaskItem>();
 
-            // Efficiently load all descendants for the root tasks
-            await LoadTaskHierarchy(rootTasks);
+            foreach (var task in allTasksInContext)
+            {
+                if (task.ParentTaskId.HasValue && taskDictionary.TryGetValue(task.ParentTaskId.Value, out var parent))
+                {
+                    if (parent.SubTasks == null) parent.SubTasks = new List<TaskItem>();
+                    parent.SubTasks.Add(task);
+                }
+                else if (!task.ParentTaskId.HasValue)
+                {
+                    rootTasks.Add(task);
+                }
+            }
+
+            // Final ordering pass
+            rootTasks = rootTasks.OrderByDescending(t => t.CreatedAt).ToList();
+            foreach (var task in allTasksInContext.Where(t => t.SubTasks != null))
+            {
+                task.SubTasks = task.SubTasks.OrderByDescending(st => st.CreatedAt).ToList();
+            }
 
             return View(rootTasks);
         }
-
-        private async Task LoadTaskHierarchy(List<TaskItem> rootTasks)
-        {
-            if (!rootTasks.Any()) return;
-
-            var rootTaskIds = rootTasks.Select(t => t.Id).ToList();
-
-            // Fetch all descendants in a single query
-            var allTasks = await _context.Tasks
-                .Include(t => t.TaskAssignments).ThenInclude(ta => ta.User)
-                .Include(t => t.TaskCompletions)
-                .Include(t => t.CreatedBy)
-                .ToListAsync();
-
-            var taskDictionary = allTasks.ToDictionary(t => t.Id);
-
-            foreach (var task in allTasks)
-            {
-                if (task.ParentTaskId.HasValue && taskDictionary.ContainsKey(task.ParentTaskId.Value))
-                {
-                    var parent = taskDictionary[task.ParentTaskId.Value];
-                    // Ensure SubTasks collection is initialized
-                    if (parent.SubTasks == null) {
-                        parent.SubTasks = new List<TaskItem>();
-                    }
-                    parent.SubTasks.Add(task);
-                }
-            }
-
-            // Ensure subtasks are ordered
-            foreach(var task in allTasks)
-            {
-                if(task.SubTasks != null)
-                {
-                    task.SubTasks = task.SubTasks.OrderByDescending(st => st.CreatedAt).ToList();
-                }
-            }
-        }
-
 
         // GET: Tasks/Details/5
         public async Task<IActionResult> Details(int? id)
@@ -111,11 +91,31 @@ namespace TaskManagementApp.Controllers
 
             if (task == null) return NotFound();
 
-            // Efficiently load all sub-tasks
-            var descendants = new List<TaskItem> { task };
-            await LoadTaskHierarchy(descendants);
+            // Fetch all tasks in the same context to build the full hierarchy for the partial views
+            var allTasksInContext = await _context.Tasks
+                .Where(t => t.ProjectId == task.ProjectId)
+                .Include(t => t.TaskAssignments).ThenInclude(ta => ta.User)
+                .Include(t => t.TaskCompletions).ThenInclude(tc => tc.User)
+                .Include(t => t.CreatedBy)
+                .ToListAsync();
 
-            return View(task);
+            var taskDictionary = allTasksInContext.ToDictionary(t => t.Id);
+
+            foreach (var subTask in allTasksInContext)
+            {
+                if (subTask.ParentTaskId.HasValue && taskDictionary.TryGetValue(subTask.ParentTaskId.Value, out var parent))
+                {
+                    if (parent.SubTasks == null) parent.SubTasks = new List<TaskItem>();
+                    parent.SubTasks.Add(subTask);
+                }
+            }
+
+            foreach (var t in allTasksInContext.Where(t => t.SubTasks != null))
+            {
+                 t.SubTasks = t.SubTasks.OrderByDescending(st => st.CreatedAt).ToList();
+            }
+
+            return View(taskDictionary[task.Id]);
         }
 
         // GET: Tasks/Create
@@ -138,7 +138,7 @@ namespace TaskManagementApp.Controllers
                 if (parentTask != null)
                 {
                     ViewBag.ParentTaskTitle = parentTask.Title;
-                    model.ProjectId = parentTask.ProjectId; // Inherit project from parent
+                    model.ProjectId = parentTask.ProjectId;
                 }
             }
 
@@ -171,9 +171,8 @@ namespace TaskManagementApp.Controllers
             };
 
             _context.Tasks.Add(task);
-            await _context.SaveChangesAsync(); // Save to get the new Task Id
+            await _context.SaveChangesAsync();
 
-            // Handle assignments
             if (model.AssignmentType == "AllUsers")
             {
                 var allUsers = await _userManager.Users.ToListAsync();
@@ -233,43 +232,44 @@ namespace TaskManagementApp.Controllers
         {
             if (id != model.Id) return NotFound();
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var task = await _context.Tasks.Include(t => t.TaskAssignments).FirstOrDefaultAsync(t => t.Id == id);
-                if (task == null) return NotFound();
-
-                task.Title = model.Title;
-                task.Description = model.Description;
-                task.DueDate = model.DueDate;
-                task.Status = model.Status;
-                task.ProjectId = model.ProjectId;
-
-                // Update assignments
-                task.TaskAssignments.Clear();
-                if (model.SelectedUserIds != null)
-                {
-                    foreach (var userId in model.SelectedUserIds)
-                    {
-                        task.TaskAssignments.Add(new TaskAssignment { UserId = userId });
-                    }
-                }
-
-                try
-                {
-                    await _context.SaveChangesAsync();
-                    TempData["SuccessMessage"] = "Task updated successfully!";
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!TaskExists(id)) return NotFound();
-                    else throw;
-                }
-                return RedirectToAction("Index", new { projectId = task.ProjectId });
+                ViewBag.Users = await _userManager.Users.ToListAsync();
+                ViewBag.Projects = await _context.Projects.ToListAsync();
+                return View(model);
             }
 
-            ViewBag.Users = await _userManager.Users.ToListAsync();
-            ViewBag.Projects = await _context.Projects.ToListAsync();
-            return View(model);
+            var task = await _context.Tasks.Include(t => t.TaskAssignments).FirstOrDefaultAsync(t => t.Id == id);
+            if (task == null) return NotFound();
+
+            task.Title = model.Title;
+            task.Description = model.Description;
+            task.DueDate = model.DueDate;
+            task.Status = model.Status;
+            task.ProjectId = model.ProjectId;
+
+            var existingUserIds = task.TaskAssignments.Select(ta => ta.UserId).ToList();
+            var selectedUserIds = model.SelectedUserIds ?? new List<string>();
+            var userIdsToAdd = selectedUserIds.Except(existingUserIds).ToList();
+            var assignmentsToRemove = task.TaskAssignments.Where(ta => !selectedUserIds.Contains(ta.UserId)).ToList();
+
+            _context.TaskAssignments.RemoveRange(assignmentsToRemove);
+            foreach (var userId in userIdsToAdd)
+            {
+                task.TaskAssignments.Add(new TaskAssignment { TaskId = task.Id, UserId = userId });
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Task updated successfully!";
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!TaskExists(id)) return NotFound();
+                else throw;
+            }
+            return RedirectToAction("Index", new { projectId = task.ProjectId });
         }
 
         // POST: Tasks/Delete/5
@@ -301,12 +301,10 @@ namespace TaskManagementApp.Controllers
             var task = await _context.Tasks
                                 .Include(t => t.TaskAssignments)
                                 .FirstOrDefaultAsync(t => t.Id == id);
-
             if (task == null) return NotFound();
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // User must be assigned to the task to complete it
             if (!task.TaskAssignments.Any(ta => ta.UserId == currentUserId) && !User.IsInRole("Admin"))
             {
                 TempData["ErrorMessage"] = "You are not assigned to this task.";
@@ -316,32 +314,43 @@ namespace TaskManagementApp.Controllers
             var alreadyCompleted = await _context.TaskCompletions
                 .AnyAsync(tc => tc.TaskId == id && tc.UserId == currentUserId);
 
-            if (!alreadyCompleted)
-            {
-                _context.TaskCompletions.Add(new TaskCompletion
-                {
-                    TaskId = id,
-                    UserId = currentUserId,
-                    CompletionDate = DateTime.UtcNow
-                });
-
-                // Check if all assigned users have now completed the task
-                var totalAssignments = task.TaskAssignments.Count();
-                var totalCompletions = await _context.TaskCompletions.CountAsync(tc => tc.TaskId == id) + 1; // +1 for the current one
-
-                if (totalAssignments > 0 && totalCompletions >= totalAssignments)
-                {
-                    task.Status = Models.TaskStatus.Completed;
-                }
-
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Task marked as completed!";
-            }
-            else
+            if (alreadyCompleted)
             {
                 TempData["InfoMessage"] = "You have already marked this task as completed.";
+                return RedirectToAction("Index", new { projectId = task.ProjectId });
             }
 
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    _context.TaskCompletions.Add(new TaskCompletion
+                    {
+                        TaskId = id,
+                        UserId = currentUserId,
+                        CompletionDate = DateTime.UtcNow
+                    });
+                    await _context.SaveChangesAsync();
+
+                    var totalAssignments = task.TaskAssignments.Count();
+                    var totalCompletions = await _context.TaskCompletions.CountAsync(tc => tc.TaskId == id);
+
+                    if (totalAssignments > 0 && totalCompletions >= totalAssignments)
+                    {
+                        task.Status = Models.TaskStatus.Completed;
+                        _context.Update(task);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    await transaction.CommitAsync();
+                    TempData["SuccessMessage"] = "Task marked as completed!";
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    TempData["ErrorMessage"] = "An error occurred while completing the task.";
+                }
+            }
             return RedirectToAction("Index", new { projectId = task.ProjectId });
         }
 
