@@ -30,6 +30,19 @@
                     <label class="form-check-label text-white" asp-for="IsPublic">@Html.DisplayNameFor(model => model.IsPublic)</label>
                 </div>
 
+                <div class="mb-3">
+                    <label for="templateId" class="form-label text-white">Project Template</label>
+                    <select name="templateId" id="templateId" class="form-control bg-dark-glass text-white">
+                        <option value="">Start from scratch</option>
+                        @foreach (var template in ViewBag.ProjectTemplates)
+                        {
+                            <option value="@template.Id">@template.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div id="template-preview"></div>
+
                 <div class="d-flex justify-content-end">
                     <button type="submit" class="btn btn-success me-2">
                         <i class="fas fa-save"></i> Create
@@ -45,4 +58,59 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function () {
+            $('#templateId').on('change', function () {
+                var templateId = $(this).val();
+                var previewDiv = $('#template-preview');
+                previewDiv.empty();
+
+                if (templateId) {
+                    $.ajax({
+                        url: '@Url.Action("GetTemplateJson", "ProjectTemplates")?id=' + templateId,
+                        type: 'GET',
+                        success: function (sections) {
+                            if (sections && sections.length > 0) {
+                                previewDiv.append('<h5>Template Preview</h5>');
+                                var sectionsMap = {};
+                                var roots = [];
+
+                                sections.forEach(function(section) {
+                                    section.children = [];
+                                    sectionsMap[section.id] = section;
+                                });
+
+                                sections.forEach(function(section) {
+                                    if (section.parentSectionId) {
+                                        sectionsMap[section.parentSectionId].children.push(section);
+                                    } else {
+                                        roots.push(section);
+                                    }
+                                });
+
+                                var rootList = $('<ul>').addClass('list-group');
+                                roots.forEach(function(section) {
+                                    renderSection(section, rootList);
+                                });
+                                previewDiv.append(rootList);
+                            }
+                        }
+                    });
+                }
+            });
+
+            function renderSection(section, parentElement) {
+                var listItem = $('<li>').addClass('list-group-item bg-dark-glass text-white').text(section.title);
+                parentElement.append(listItem);
+
+                if (section.children && section.children.length > 0) {
+                    var sublist = $('<ul>').addClass('list-group mt-2');
+                    section.children.forEach(function (child) {
+                        renderSection(child, sublist);
+                    });
+                    listItem.append(sublist);
+                }
+            }
+        });
+    </script>
 }

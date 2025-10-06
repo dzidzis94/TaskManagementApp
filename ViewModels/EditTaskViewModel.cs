@@ -23,7 +23,7 @@ namespace TaskManagementApp.ViewModels
         public DateTime? DueDate { get; set; }
 
         [Display(Name = "Status")]
-        public TaskStatus Status { get; set; }
+        public TaskManagementApp.Models.TaskStatus Status { get; set; }
 
         [Display(Name = "Project")]
         public int? ProjectId { get; set; }

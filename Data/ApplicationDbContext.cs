@@ -12,6 +12,8 @@ namespace TaskManagementApp.Data
         public DbSet<Project> Projects { get; set; }
         public DbSet<TaskAssignment> TaskAssignments { get; set; }
         public DbSet<TaskCompletion> TaskCompletions { get; set; }
+        public DbSet<ProjectTemplate> ProjectTemplates { get; set; }
+        public DbSet<TemplateSection> TemplateSections { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -26,6 +28,28 @@ namespace TaskManagementApp.Data
                       .WithOne(t => t.Project)
                       .HasForeignKey(t => t.ProjectId)
                       .OnDelete(DeleteBehavior.Cascade); // If a project is deleted, its tasks are also deleted.
+            });
+
+            // ProjectTemplate Configuration
+            builder.Entity<ProjectTemplate>(entity =>
+            {
+                entity.HasKey(pt => pt.Id);
+                entity.Property(pt => pt.Name).IsRequired().HasMaxLength(100);
+                entity.HasMany(pt => pt.Sections)
+                      .WithOne(ts => ts.ProjectTemplate)
+                      .HasForeignKey(ts => ts.ProjectTemplateId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // TemplateSection Configuration
+            builder.Entity<TemplateSection>(entity =>
+            {
+                entity.HasKey(ts => ts.Id);
+                entity.Property(ts => ts.Title).IsRequired().HasMaxLength(100);
+                entity.HasOne(ts => ts.ParentSection)
+                    .WithMany(ts => ts.ChildSections)
+                    .HasForeignKey(ts => ts.ParentSectionId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // TaskItem Configuration

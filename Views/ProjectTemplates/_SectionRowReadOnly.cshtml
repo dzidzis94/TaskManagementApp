@@ -1,0 +1,14 @@
+@model TaskManagementApp.Models.TemplateSection
+
+<tr>
+    <td>@Model.Title</td>
+    <td>@Model.Description</td>
+</tr>
+
+@if (Model.ChildSections.Any())
+{
+    @foreach (var childSection in Model.ChildSections)
+    {
+        @await Html.PartialAsync("_SectionRowReadOnly", childSection)
+    }
+}
