@@ -1,102 +1,134 @@
-﻿@model TaskManagementApp.Models.TaskItem
+@model TaskManagementApp.Models.TaskItem
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
 
 @{
-    ViewData["Title"] = "Uzdevuma detaļas";
+    ViewData["Title"] = "Task Details";
+    var currentUserId = UserManager.GetUserId(User);
+    var isAssigned = Model.TaskAssignments.Any(ta => ta.UserId == currentUserId);
+    var hasCompleted = Model.TaskCompletions.Any(tc => tc.UserId == currentUserId);
+    var canComplete = isAssigned && !hasCompleted;
 }
 
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-info-circle"></i> Uzdevuma detaļas</h1>
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <a href="@Url.Action("Index")" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Atpakaļ
-            </a>
+            <h1 class="text-white">@Model.Title</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-transparent p-0 m-0">
+                    @if (Model.ProjectId.HasValue)
+                    {
+                        <li class="breadcrumb-item"><a asp-controller="Projects" asp-action="Details" asp-route-id="@Model.ProjectId">@Model.Project?.Name</a></li>
+                    }
+                    else
+                    {
+                        <li class="breadcrumb-item"><a asp-controller="Tasks" asp-action="Index">General Tasks</a></li>
+                    }
+                    @if (Model.ParentTaskId.HasValue)
+                    {
+                        <li class="breadcrumb-item"><a asp-controller="Tasks" asp-action="Details" asp-route-id="@Model.ParentTaskId">...</a></li>
+                    }
+                    <li class="breadcrumb-item active text-white" aria-current="page">@Model.Title</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
             @if (User.IsInRole("Admin"))
             {
-            <a href="@Url.Action("Edit", new { id = Model.Id })" class="btn btn-primary">
-                <i class="fas fa-edit"></i> Rediģēt
-            </a>
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary"><i class="fas fa-edit"></i> Edit</a>
             }
         </div>
     </div>
+    <hr class="border-light" />
 
-    <div class="card">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">@Model.Title</h4>
+    <div class="row">
+        <!-- Main Task Details -->
+        <div class="col-lg-8">
+            <div class="card bg-dark-glass mb-4">
+                <div class="card-body">
+                    <h5 class="card-title text-white">Description</h5>
+                    <p class="card-text text-white-70">@Model.Description</p>
+                    <hr class="border-secondary" />
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong class="text-white">Status:</strong> <span class="badge bg-info">@Model.Status</span><br />
+                            <strong class="text-white">Due Date:</strong> <span class="text-white-70">@(Model.DueDate?.ToString("yyyy-MM-dd") ?? "Not set")</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong class="text-white">Created by:</strong> <span class="text-white-70">@Model.CreatedBy?.UserName</span><br />
+                            <strong class="text-white">Created at:</strong> <span class="text-white-70">@Model.CreatedAt.ToString("g")</span>
+                        </div>
+                    </div>
+                     @if (canComplete)
+                    {
+                        <form asp-controller="Tasks" asp-action="MarkAsCompleted" asp-route-id="@Model.Id" method="post" class="mt-3">
+                            <button type="submit" class="btn btn-success"><i class="fas fa-check-circle"></i> Mark as Complete</button>
+                        </form>
+                    }
+                </div>
+            </div>
+
+            <!-- Subtasks -->
+            <div class="card bg-dark-glass">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                         <h5 class="card-title text-white">Sub-Tasks</h5>
+                         @if (User.IsInRole("Admin"))
+                         {
+                            <a asp-action="Create" asp-route-parentTaskId="@Model.Id" asp-route-projectId="@Model.ProjectId" class="btn btn-sm btn-success"><i class="fas fa-plus"></i> Add Sub-task</a>
+                         }
+                    </div>
+                    @if (Model.SubTasks != null && Model.SubTasks.Any())
+                    {
+                        @await Html.PartialAsync("_TaskList", Model.SubTasks)
+                    }
+                    else
+                    {
+                        <p class="text-white-50">No sub-tasks yet.</p>
+                    }
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-8">
-                    <h5>Apraksts</h5>
-                    <p class="text-muted">@(string.IsNullOrEmpty(Model.Description) ? "Nav apraksta" : Model.Description)</p>
 
-                    <div class="row mt-4">
-                        <div class="col-sm-6">
-                            <h6>Pamatinformācija</h6>
-                            <ul class="list-unstyled">
-                                <li><strong>Statuss:</strong> <span class="badge @GetStatusBadgeClass(Model.Status)">@Model.Status.GetDisplayName()</span></li>
-                                <li><strong>Izveidots:</strong> @Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</li>
-                                <li><strong>Termiņš:</strong> @(Model.DueDate?.ToString("dd.MM.yyyy") ?? "Nav noteikts")</li>
-                            </ul>
-                        </div>
-                        <div class="col-sm-6">
-                            <h6>Piešķiršana</h6>
-                            <ul class="list-unstyled">
-                                <li><strong>Izveidotājs:</strong> @Model.CreatedBy?.FirstName @Model.CreatedBy?.LastName</li>
-                                <li><strong>Piešķirts:</strong> @(Model.AssignedUser?.FirstName ?? "Nav piešķirts") @Model.AssignedUser?.LastName</li>
-                                @if (Model.ParentTask != null)
-                                {
-                                <li><strong>Vecākuzdevums:</strong> @Model.ParentTask.Title</li>
-                                }
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            @if (Model.SubTasks.Any())
-            {
-            <div class="mt-4">
-                <h5>Apakšuzdevumi (@Model.SubTasks.Count)</h5>
-                <div class="sub-tasks">
-                    @foreach (var subTask in Model.SubTasks.OrderBy(t => t.CreatedAt))
+        <!-- Side Panel for Assignments and Completions -->
+        <div class="col-lg-4">
+            <div class="card bg-dark-glass mb-4">
+                <div class="card-header">Assigned Users</div>
+                <ul class="list-group list-group-flush">
+                    @if (Model.TaskAssignments != null && Model.TaskAssignments.Any())
+                    {
+                        @foreach (var assignment in Model.TaskAssignments)
                         {
-                    <div class="card mb-2">
-                        <div class="card-body py-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-0">@subTask.Title</h6>
-                                    <small class="text-muted">
-                                        Statuss: <span class="badge @GetStatusBadgeClass(subTask.Status)">@subTask.Status.GetDisplayName()</span> |
-                                        Termiņš: @(subTask.DueDate?.ToString("dd.MM.yyyy") ?? "Nav noteikts")
-                                    </small>
-                                </div>
-                                <div>
-                                    <a href="@Url.Action("Details", new { id = subTask.Id })" class="btn btn-sm btn-outline-info">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                            <li class="list-group-item bg-transparent text-white">@assignment.User?.UserName</li>
                         }
-                </div>
+                    }
+                    else
+                    {
+                        <li class="list-group-item bg-transparent text-white-50">Not assigned to anyone.</li>
+                    }
+                </ul>
             </div>
-            }
+
+            <div class="card bg-dark-glass">
+                <div class="card-header">Completion History</div>
+                 <ul class="list-group list-group-flush">
+                    @if (Model.TaskCompletions != null && Model.TaskCompletions.Any())
+                    {
+                        @foreach (var completion in Model.TaskCompletions.OrderByDescending(c => c.CompletionDate))
+                        {
+                            <li class="list-group-item bg-transparent text-white d-flex justify-content-between">
+                                <span>@completion.User?.UserName</span>
+                                <small class="text-white-50">@completion.CompletionDate.ToString("yyyy-MM-dd HH:mm")</small>
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        <li class="list-group-item bg-transparent text-white-50">No one has completed this task yet.</li>
+                    }
+                </ul>
+            </div>
         </div>
     </div>
 </div>
-
-@functions {
-    string GetStatusBadgeClass(TaskManagementApp.Models.TaskStatus status)
-    {
-        return status switch
-        {
-            TaskManagementApp.Models.TaskStatus.Pending => "bg-warning",
-            TaskManagementApp.Models.TaskStatus.InProgress => "bg-info",
-            TaskManagementApp.Models.TaskStatus.Completed => "bg-success",
-            TaskManagementApp.Models.TaskStatus.Cancelled => "bg-danger",
-            _ => "bg-secondary"
-        };
-    }
-}

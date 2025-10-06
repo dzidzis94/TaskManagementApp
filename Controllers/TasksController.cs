@@ -1,11 +1,15 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskManagementApp.Data;
 using TaskManagementApp.Models;
 using TaskManagementApp.ViewModels;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace TaskManagementApp.Controllers
 {
@@ -22,100 +26,126 @@ namespace TaskManagementApp.Controllers
         }
 
         // GET: Tasks
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? projectId)
         {
-            // Ielādējam tikai saknes uzdevumus (bez vecākiem) ar LEFT JOIN
-            var rootTasks = await _context.Tasks
-                .Include(t => t.AssignedUser)  // LEFT JOIN automātiski
-                .Include(t => t.CreatedBy)     // LEFT JOIN automātiski
-                .Where(t => t.ParentTaskId == null)
-                .OrderByDescending(t => t.CreatedAt)
-                .ToListAsync();
+            ViewBag.ProjectId = projectId;
+            var query = _context.Tasks
+                .Include(t => t.Project)
+                .Include(t => t.TaskAssignments)
+                    .ThenInclude(ta => ta.User)
+                .Include(t => t.TaskCompletions)
+                .Include(t => t.CreatedBy)
+                .Where(t => t.ParentTaskId == null); // Only root tasks
 
-            // Manuāli ielādējam VISUS apakšuzdevumus rekursīvi
-            foreach (var task in rootTasks)
+            if (projectId.HasValue)
             {
-                await LoadAllSubTasksRecursively(task);
+                query = query.Where(t => t.ProjectId == projectId.Value);
+                var project = await _context.Projects.FindAsync(projectId.Value);
+                ViewBag.ProjectName = project?.Name;
             }
+            else
+            {
+                query = query.Where(t => t.ProjectId == null);
+                ViewBag.ProjectName = "General Tasks";
+            }
+
+            var rootTasks = await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
+
+            // Efficiently load all descendants for the root tasks
+            await LoadTaskHierarchy(rootTasks);
 
             return View(rootTasks);
         }
 
-        // Palīgmetode rekursīvai VISU apakšuzdevumu ielādei
-        private async Task LoadAllSubTasksRecursively(TaskItem task)
+        private async Task LoadTaskHierarchy(List<TaskItem> rootTasks)
         {
-            // Ielādējam visus apakšuzdevumus ar LEFT JOIN
-            var subTasks = await _context.Tasks
-                .Include(t => t.AssignedUser)  // LEFT JOIN
-                .Include(t => t.CreatedBy)     // LEFT JOIN
-                .Where(t => t.ParentTaskId == task.Id)
-                .OrderByDescending(t => t.CreatedAt)
+            if (!rootTasks.Any()) return;
+
+            var rootTaskIds = rootTasks.Select(t => t.Id).ToList();
+
+            // Fetch all descendants in a single query
+            var allTasks = await _context.Tasks
+                .Include(t => t.TaskAssignments).ThenInclude(ta => ta.User)
+                .Include(t => t.TaskCompletions)
+                .Include(t => t.CreatedBy)
                 .ToListAsync();
 
-            task.SubTasks = subTasks;
+            var taskDictionary = allTasks.ToDictionary(t => t.Id);
 
-            // Rekursīvi ielādējam VISUS apakšuzdevumus
-            foreach (var subTask in subTasks)
+            foreach (var task in allTasks)
             {
-                await LoadAllSubTasksRecursively(subTask);
+                if (task.ParentTaskId.HasValue && taskDictionary.ContainsKey(task.ParentTaskId.Value))
+                {
+                    var parent = taskDictionary[task.ParentTaskId.Value];
+                    // Ensure SubTasks collection is initialized
+                    if (parent.SubTasks == null) {
+                        parent.SubTasks = new List<TaskItem>();
+                    }
+                    parent.SubTasks.Add(task);
+                }
+            }
+
+            // Ensure subtasks are ordered
+            foreach(var task in allTasks)
+            {
+                if(task.SubTasks != null)
+                {
+                    task.SubTasks = task.SubTasks.OrderByDescending(st => st.CreatedAt).ToList();
+                }
             }
         }
+
 
         // GET: Tasks/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var task = await _context.Tasks
-                .Include(t => t.AssignedUser)  // LEFT JOIN
-                .Include(t => t.CreatedBy)     // LEFT JOIN
-                .Include(t => t.ParentTask)    // LEFT JOIN
+                .Include(t => t.Project)
+                .Include(t => t.ParentTask)
+                .Include(t => t.TaskAssignments).ThenInclude(ta => ta.User)
+                .Include(t => t.TaskCompletions).ThenInclude(tc => tc.User)
+                .Include(t => t.CreatedBy)
                 .FirstOrDefaultAsync(m => m.Id == id);
 
-            if (task == null)
-            {
-                return NotFound();
-            }
+            if (task == null) return NotFound();
 
-            // Ielādējam VISUS apakšuzdevumus rekursīvi
-            await LoadAllSubTasksRecursively(task);
+            // Efficiently load all sub-tasks
+            var descendants = new List<TaskItem> { task };
+            await LoadTaskHierarchy(descendants);
 
             return View(task);
         }
 
-        // GET: Tasks/Create - ŠIS TRUKST! PIEVIENO ŠO:
+        // GET: Tasks/Create
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Create(int? parentTaskId = null)
+        public async Task<IActionResult> Create(int? projectId, int? parentTaskId)
         {
-            var users = await _userManager.Users.ToListAsync();
-
             var model = new CreateTaskViewModel
             {
+                ProjectId = projectId,
                 ParentTaskId = parentTaskId,
                 DueDate = DateTime.Today.AddDays(7)
             };
 
-            ViewBag.Users = users;
+            ViewBag.Users = await _userManager.Users.ToListAsync();
+            ViewBag.Projects = await _context.Projects.ToListAsync();
 
-            // Pārbaudām vai vecākuzdevums eksistē
             if (parentTaskId.HasValue)
             {
-                var parentTask = await _context.Tasks
-                    .FirstOrDefaultAsync(t => t.Id == parentTaskId.Value);
-
+                var parentTask = await _context.Tasks.FindAsync(parentTaskId.Value);
                 if (parentTask != null)
                 {
                     ViewBag.ParentTaskTitle = parentTask.Title;
+                    model.ProjectId = parentTask.ProjectId; // Inherit project from parent
                 }
             }
 
             return View(model);
         }
 
-        // POST: Tasks/Create - TURI TIKAI ŠO VIENU POST METODI
+        // POST: Tasks/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -124,77 +154,59 @@ namespace TaskManagementApp.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.Users = await _userManager.Users.ToListAsync();
+                ViewBag.Projects = await _context.Projects.ToListAsync();
                 return View(model);
             }
-
-            // Pārbaudām vai vecākuzdevums eksistē
-            if (model.ParentTaskId.HasValue)
-            {
-                var parentTask = await _context.Tasks.FindAsync(model.ParentTaskId.Value);
-                if (parentTask == null)
-                {
-                    ModelState.AddModelError("ParentTaskId", "Norādītais vecākuzdevums neeksistē");
-                    ViewBag.Users = await _userManager.Users.ToListAsync();
-                    return View(model);
-                }
-            }
-
-            // Validācija piešķiršanas tipam
-            if (model.AssignmentType == "SpecificUser" && string.IsNullOrEmpty(model.AssignedUserId))
-            {
-                ModelState.AddModelError("AssignedUserId", "Lūdzu izvēlieties lietotāju");
-                ViewBag.Users = await _userManager.Users.ToListAsync();
-                return View(model);
-            }
-
-            // Ja piešķir visiem lietotājiem, tad AssignedUserId būs null
-            string assignedUserId = model.AssignmentType == "AllUsers" ? null : model.AssignedUserId;
 
             var task = new TaskItem
             {
                 Title = model.Title,
                 Description = model.Description,
                 DueDate = model.DueDate,
+                ProjectId = model.ProjectId,
                 ParentTaskId = model.ParentTaskId,
-                AssignedUserId = assignedUserId, // Var būt null
                 CreatedById = User.FindFirstValue(ClaimTypes.NameIdentifier),
                 CreatedAt = DateTime.UtcNow,
                 Status = Models.TaskStatus.Pending,
-                // Inicializējam string īpašības
-                CompletedByUsers = "",
-                AssignedUserIds = ""
             };
 
             _context.Tasks.Add(task);
+            await _context.SaveChangesAsync(); // Save to get the new Task Id
+
+            // Handle assignments
+            if (model.AssignmentType == "AllUsers")
+            {
+                var allUsers = await _userManager.Users.ToListAsync();
+                foreach (var user in allUsers)
+                {
+                    _context.TaskAssignments.Add(new TaskAssignment { TaskId = task.Id, UserId = user.Id });
+                }
+            }
+            else if (model.SelectedUserIds != null)
+            {
+                foreach (var userId in model.SelectedUserIds)
+                {
+                    _context.TaskAssignments.Add(new TaskAssignment { TaskId = task.Id, UserId = userId });
+                }
+            }
+
             await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Task created successfully!";
 
-            TempData["SuccessMessage"] = "Uzdevums veiksmīgi izveidots!";
-
-            return model.ParentTaskId.HasValue
-                ? RedirectToAction("Details", new { id = model.ParentTaskId.Value })
-                : RedirectToAction(nameof(Index));
+            return RedirectToAction("Index", new { projectId = task.ProjectId });
         }
 
         // GET: Tasks/Edit/5
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var task = await _context.Tasks
-                .Include(t => t.AssignedUser)
+                .Include(t => t.TaskAssignments)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
-            if (task == null)
-            {
-                return NotFound();
-            }
-
-            var users = await _userManager.Users.ToListAsync();
-            ViewBag.Users = users;
+            if (task == null) return NotFound();
 
             var model = new EditTaskViewModel
             {
@@ -203,9 +215,12 @@ namespace TaskManagementApp.Controllers
                 Description = task.Description,
                 DueDate = task.DueDate,
                 Status = task.Status,
-                AssignedUserId = task.AssignedUserId,
-                ParentTaskId = task.ParentTaskId
+                ProjectId = task.ProjectId,
+                SelectedUserIds = task.TaskAssignments.Select(ta => ta.UserId).ToList()
             };
+
+            ViewBag.Users = await _userManager.Users.ToListAsync();
+            ViewBag.Projects = await _context.Projects.ToListAsync();
 
             return View(model);
         }
@@ -216,135 +231,66 @@ namespace TaskManagementApp.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id, EditTaskViewModel model)
         {
-            if (id != model.Id)
-            {
-                return NotFound();
-            }
+            if (id != model.Id) return NotFound();
 
             if (ModelState.IsValid)
             {
-                var task = await _context.Tasks.FindAsync(id);
-                if (task == null)
-                {
-                    return NotFound();
-                }
+                var task = await _context.Tasks.Include(t => t.TaskAssignments).FirstOrDefaultAsync(t => t.Id == id);
+                if (task == null) return NotFound();
 
                 task.Title = model.Title;
                 task.Description = model.Description;
                 task.DueDate = model.DueDate;
                 task.Status = model.Status;
-                task.AssignedUserId = model.AssignedUserId;
+                task.ProjectId = model.ProjectId;
+
+                // Update assignments
+                task.TaskAssignments.Clear();
+                if (model.SelectedUserIds != null)
+                {
+                    foreach (var userId in model.SelectedUserIds)
+                    {
+                        task.TaskAssignments.Add(new TaskAssignment { UserId = userId });
+                    }
+                }
 
                 try
                 {
-                    _context.Update(task);
                     await _context.SaveChangesAsync();
-                    TempData["SuccessMessage"] = "Uzdevums veiksmīgi atjaunināts!";
+                    TempData["SuccessMessage"] = "Task updated successfully!";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!TaskExists(id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    if (!TaskExists(id)) return NotFound();
+                    else throw;
                 }
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("Index", new { projectId = task.ProjectId });
             }
 
-            var users = await _userManager.Users.ToListAsync();
-            ViewBag.Users = users;
+            ViewBag.Users = await _userManager.Users.ToListAsync();
+            ViewBag.Projects = await _context.Projects.ToListAsync();
             return View(model);
         }
 
         // POST: Tasks/Delete/5
-        [HttpPost]
+        [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var task = await _context.Tasks
-                .Include(t => t.SubTasks)
-                .FirstOrDefaultAsync(t => t.Id == id);
+            var task = await _context.Tasks.Include(t => t.SubTasks).FirstOrDefaultAsync(t => t.Id == id);
+            if (task == null) return NotFound();
 
-            if (task == null)
-            {
-                return NotFound();
-            }
-
-            // Pārbauda vai uzdevumam nav apakšuzdevumu
             if (task.SubTasks.Any())
             {
-                TempData["ErrorMessage"] = "Nevar dzēst uzdevumu, kam ir apakšuzdevumi!";
-                return RedirectToAction(nameof(Index));
+                TempData["ErrorMessage"] = "Cannot delete a task that has sub-tasks.";
+                return RedirectToAction("Index", new { projectId = task.ProjectId });
             }
 
             _context.Tasks.Remove(task);
             await _context.SaveChangesAsync();
-            TempData["SuccessMessage"] = "Uzdevums veiksmīgi dzēsts!";
-
-            return RedirectToAction(nameof(Index));
-        }
-
-        // POST: Tasks/ChangeStatus/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ChangeStatus(int id, Models.TaskStatus newStatus)
-        {
-            var task = await _context.Tasks.FindAsync(id);
-            if (task == null)
-            {
-                return NotFound();
-            }
-
-            // Pārbauda vai lietotājs var mainīt statusu
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (task.AssignedUserId != currentUserId && !User.IsInRole("Admin"))
-            {
-                TempData["ErrorMessage"] = "Jums nav tiesību mainīt šī uzdevuma statusu!";
-                return RedirectToAction(nameof(Index));
-            }
-
-            task.Status = newStatus;
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Uzdevuma statuss veiksmīgi mainīts!";
-            return RedirectToAction(nameof(Index));
-        }
-
-        // POST: Tasks/JoinTask/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> JoinTask(int id)
-        {
-            var task = await _context.Tasks.FindAsync(id);
-            if (task == null)
-            {
-                return NotFound();
-            }
-
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            // Pārbauda vai lietotājs jau nav piešķirts
-            if (!IsUserInAssignedList(task.AssignedUserIds, currentUserId))
-            {
-                // Pievieno lietotāju assignedUserIds sarakstam
-                task.AssignedUserIds = AddUserToList(task.AssignedUserIds, currentUserId);
-
-                _context.Update(task);
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = "Jūs veiksmīgi pievienojāties uzdevumam!";
-            }
-            else
-            {
-                TempData["InfoMessage"] = "Jūs jau esat piešķirts šim uzdevumam!";
-            }
-
-            return RedirectToAction(nameof(Index));
+            TempData["SuccessMessage"] = "Task deleted successfully.";
+            return RedirectToAction("Index", new { projectId = task.ProjectId });
         }
 
         // POST: Tasks/MarkAsCompleted/5
@@ -352,68 +298,57 @@ namespace TaskManagementApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkAsCompleted(int id)
         {
-            var task = await _context.Tasks.FindAsync(id);
-            if (task == null)
-            {
-                return NotFound();
-            }
+            var task = await _context.Tasks
+                                .Include(t => t.TaskAssignments)
+                                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (task == null) return NotFound();
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // Pārbauda vai lietotājs jau nav atzīmējis kā pabeigtu
-            if (!IsUserInCompletedList(task.CompletedByUsers, currentUserId))
+            // User must be assigned to the task to complete it
+            if (!task.TaskAssignments.Any(ta => ta.UserId == currentUserId) && !User.IsInRole("Admin"))
             {
-                // Pievieno lietotāju completedByUsers sarakstam
-                task.CompletedByUsers = AddUserToList(task.CompletedByUsers, currentUserId);
-                task.Status = Models.TaskStatus.Completed;
+                TempData["ErrorMessage"] = "You are not assigned to this task.";
+                return RedirectToAction("Index", new { projectId = task.ProjectId });
+            }
 
-                _context.Update(task);
+            var alreadyCompleted = await _context.TaskCompletions
+                .AnyAsync(tc => tc.TaskId == id && tc.UserId == currentUserId);
+
+            if (!alreadyCompleted)
+            {
+                _context.TaskCompletions.Add(new TaskCompletion
+                {
+                    TaskId = id,
+                    UserId = currentUserId,
+                    CompletionDate = DateTime.UtcNow
+                });
+
+                // Check if all assigned users have now completed the task
+                var totalAssignments = task.TaskAssignments.Count();
+                var totalCompletions = await _context.TaskCompletions.CountAsync(tc => tc.TaskId == id) + 1; // +1 for the current one
+
+                if (totalAssignments > 0 && totalCompletions >= totalAssignments)
+                {
+                    task.Status = Models.TaskStatus.Completed;
+                }
+
                 await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = "Uzdevums atzīmēts kā pabeigts!";
+                TempData["SuccessMessage"] = "Task marked as completed!";
             }
             else
             {
-                TempData["InfoMessage"] = "Jūs jau esat atzīmējis šo uzdevumu kā pabeigtu!";
+                TempData["InfoMessage"] = "You have already marked this task as completed.";
             }
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Index", new { projectId = task.ProjectId });
         }
+
 
         private bool TaskExists(int id)
         {
             return _context.Tasks.Any(e => e.Id == id);
-        }
-
-        // Palīgmetodes
-        private bool IsUserInCompletedList(string completedByUsers, string userId)
-        {
-            if (string.IsNullOrEmpty(completedByUsers))
-                return false;
-
-            return completedByUsers.Split(',').Contains(userId);
-        }
-
-        private bool IsUserInAssignedList(string assignedUserIds, string userId)
-        {
-            if (string.IsNullOrEmpty(assignedUserIds))
-                return false;
-
-            return assignedUserIds.Split(',').Contains(userId);
-        }
-
-        private string AddUserToList(string userList, string userId)
-        {
-            if (string.IsNullOrEmpty(userList))
-                return userId;
-
-            var users = userList.Split(',').ToList();
-            if (!users.Contains(userId))
-            {
-                users.Add(userId);
-            }
-
-            return string.Join(",", users);
         }
     }
 }
