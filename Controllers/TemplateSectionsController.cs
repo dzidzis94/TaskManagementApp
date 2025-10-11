@@ -41,6 +41,51 @@ namespace TaskManagementApp.Controllers
             return View(templateSection);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, [FromBody] TemplateSection templateSection)
+        {
+            if (id != templateSection.Id)
+            {
+                return NotFound();
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(templateSection);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!TemplateSectionExists(templateSection.Id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                return Ok();
+            }
+            return BadRequest(ModelState);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create([FromBody] TemplateSection templateSection)
+        {
+            if (ModelState.IsValid)
+            {
+                _context.Add(templateSection);
+                await _context.SaveChangesAsync();
+                return PartialView("ProjectTemplates/_SectionEditorRow", templateSection);
+            }
+            return BadRequest(ModelState);
+        }
+
         // GET: TemplateSections/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
@@ -105,11 +150,55 @@ namespace TaskManagementApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var templateSection = await _context.TemplateSections.FindAsync(id);
+            var templateSection = await _context.TemplateSections
+                .Include(s => s.ChildSections)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (templateSection == null)
+            {
+                return NotFound();
+            }
+
             var projectTemplateId = templateSection.ProjectTemplateId;
-            _context.TemplateSections.Remove(templateSection);
+
+            var sectionsToDelete = new List<TemplateSection>();
+            FindSectionsToDelete(templateSection, sectionsToDelete);
+
+            _context.TemplateSections.RemoveRange(sectionsToDelete);
             await _context.SaveChangesAsync();
+
             return RedirectToAction("Edit", "ProjectTemplates", new { id = projectTemplateId });
+        }
+
+        private void FindSectionsToDelete(TemplateSection section, List<TemplateSection> sectionsToDelete)
+        {
+            sectionsToDelete.Add(section);
+            foreach (var child in section.ChildSections)
+            {
+                FindSectionsToDelete(child, sectionsToDelete);
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateStructure(int projectTemplateId, [FromBody] List<TemplateSection> sections)
+        {
+            var existingSections = await _context.TemplateSections
+                .Where(s => s.ProjectTemplateId == projectTemplateId)
+                .ToListAsync();
+
+            foreach (var section in sections)
+            {
+                var existingSection = existingSections.FirstOrDefault(s => s.Id == section.Id);
+                if (existingSection != null)
+                {
+                    existingSection.ParentSectionId = section.ParentSectionId;
+                    existingSection.Order = section.Order;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok();
         }
     }
 }
