@@ -17,6 +17,6 @@ namespace TaskManagementApp.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public virtual ICollection<TaskItem> CreatedTasks { get; set; } = new List<TaskItem>();
-        public virtual ICollection<TaskItem> AssignedTasks { get; set; } = new List<TaskItem>();
+        public virtual ICollection<TaskAssignment> TaskAssignments { get; set; } = new List<TaskAssignment>();
     }
 }

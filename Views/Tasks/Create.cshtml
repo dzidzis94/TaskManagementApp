@@ -96,6 +96,18 @@
 
             // Initial check
             toggleUserSelection();
+
+            // Prevent double submission
+            const form = document.querySelector('form[asp-action="Create"]');
+            if (form) {
+                form.addEventListener('submit', function() {
+                    const submitButton = form.querySelector('button[type="submit"]');
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+                    }
+                });
+            }
         });
     </script>
 }
