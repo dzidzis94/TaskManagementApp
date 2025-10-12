@@ -84,11 +84,18 @@
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        // Defensive coding to ensure script runs after DOM is fully loaded
+        (function() {
             const sidebar = document.getElementById('template-sidebar');
             const overlay = document.querySelector('.sidebar-overlay');
             const openBtn = document.getElementById('open-sidebar-btn');
             const closeBtn = document.getElementById('close-sidebar-btn');
+
+            if (!sidebar || !overlay || !openBtn || !closeBtn) {
+                console.error('Sidebar components not found!');
+                return;
+            }
+
             const templateCards = document.querySelectorAll('.template-card');
             const previewArea = document.getElementById('template-preview-area');
             const previewContent = document.getElementById('template-preview-content');
@@ -113,63 +120,6 @@
             closeBtn.addEventListener('click', closeSidebar);
             overlay.addEventListener('click', closeSidebar);
 
-            templateCards.forEach(card => {
-                card.addEventListener('click', function () {
-                    const templateId = this.dataset.templateId;
-
-                    if (this.classList.contains('selected')) {
-                        this.classList.remove('selected');
-                        previewArea.style.display = 'none';
-                        applyBtn.disabled = true;
-                        selectedTemplate = null;
-                        selectedTemplateIdField.value = '';
-                    } else {
-                        templateCards.forEach(c => c.classList.remove('selected'));
-                        this.classList.add('selected');
-                        previewArea.style.display = 'block';
-                        applyBtn.disabled = false;
-
-                        selectedTemplate = {
-                            id: templateId,
-                            name: this.dataset.templateName,
-                            description: this.dataset.templateDescription
-                        };
-
-                        previewContent.innerHTML = '<p class="text-muted pulse-green">Loading preview...</p>';
-                        fetch(`/Projects/GetTemplatePreview/${templateId}`)
-                            .then(response => {
-                                if (!response.ok) throw new Error('Network response was not ok');
-                                return response.json();
-                            })
-                            .then(data => {
-                                previewContent.innerHTML = '';
-                                if (data && data.length > 0) {
-                                    const list = document.createElement('ul');
-                                    list.style.listStyleType = 'none';
-                                    list.style.paddingLeft = '0';
-                                    data.forEach(section => renderSection(section, list));
-                                    previewContent.appendChild(list);
-                                } else {
-                                    previewContent.innerHTML = '<p class="text-muted">This template appears to be empty.</p>';
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error fetching template preview:', error);
-                                previewContent.innerHTML = '<p class="text-danger small">An error occurred while loading the preview. Please try again.</p>';
-                            });
-                    }
-                });
-            });
-
-            applyBtn.addEventListener('click', function() {
-                if (selectedTemplate) {
-                    projectNameField.value = selectedTemplate.name;
-                    projectDescField.value = selectedTemplate.description;
-                    selectedTemplateIdField.value = selectedTemplate.id;
-                    closeSidebar();
-                }
-            });
-
             function renderSection(section, parentElement) {
                 const listItem = document.createElement('li');
                 listItem.className = 'preview-task-item';
@@ -182,6 +132,67 @@
                 }
                 parentElement.appendChild(listItem);
             }
-        });
+
+            templateCards.forEach(card => {
+                card.addEventListener('click', function () {
+                    const templateId = this.dataset.templateId;
+
+                    if (this.classList.contains('selected')) {
+                        this.classList.remove('selected');
+                        previewArea.style.display = 'none';
+                        if(applyBtn) applyBtn.disabled = true;
+                        selectedTemplate = null;
+                        if(selectedTemplateIdField) selectedTemplateIdField.value = '';
+                    } else {
+                        templateCards.forEach(c => c.classList.remove('selected'));
+                        this.classList.add('selected');
+                        if(previewArea) previewArea.style.display = 'block';
+                        if(applyBtn) applyBtn.disabled = false;
+
+                        selectedTemplate = {
+                            id: templateId,
+                            name: this.dataset.templateName,
+                            description: this.dataset.templateDescription
+                        };
+
+                        if(previewContent) {
+                            previewContent.innerHTML = '<p class="text-muted pulse-green">Loading preview...</p>';
+                            fetch(`/Projects/GetTemplatePreview/${templateId}`)
+                                .then(response => {
+                                    if (!response.ok) throw new Error('Network response was not ok');
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    previewContent.innerHTML = '';
+                                    if (data && data.length > 0) {
+                                        const list = document.createElement('ul');
+                                        list.style.listStyleType = 'none';
+                                        list.style.paddingLeft = '0';
+                                        data.forEach(section => renderSection(section, list));
+                                        previewContent.appendChild(list);
+                                    } else {
+                                        previewContent.innerHTML = '<p class="text-muted">This template appears to be empty.</p>';
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error fetching template preview:', error);
+                                    previewContent.innerHTML = '<p class="text-danger small">An error occurred while loading the preview. Please try again.</p>';
+                                });
+                        }
+                    }
+                });
+            });
+
+            if(applyBtn) {
+                applyBtn.addEventListener('click', function() {
+                    if (selectedTemplate) {
+                        if(projectNameField) projectNameField.value = selectedTemplate.name;
+                        if(projectDescField) projectDescField.value = selectedTemplate.description;
+                        if(selectedTemplateIdField) selectedTemplateIdField.value = selectedTemplate.id;
+                        closeSidebar();
+                    }
+                });
+            }
+        })();
     </script>
 }

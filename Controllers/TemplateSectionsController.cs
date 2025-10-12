@@ -45,6 +45,12 @@ namespace TaskManagementApp.Controllers
 
                 return RedirectToAction("Edit", "ProjectTemplates", new { id = templateSection.ProjectTemplateId });
             }
+
+            // If we got this far, something failed, redisplay form
+            ViewBag.ProjectTemplateId = templateSection.ProjectTemplateId;
+            ViewBag.ParentSections = await _context.TemplateSections
+                .Where(s => s.ProjectTemplateId == templateSection.ProjectTemplateId)
+                .ToListAsync();
             return View(templateSection);
         }
 
