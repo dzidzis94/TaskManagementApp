@@ -51,6 +51,19 @@ namespace TaskManagementApp.Models
 
         public virtual ICollection<TaskAssignment> TaskAssignments { get; set; } = new List<TaskAssignment>();
         public virtual ICollection<TaskCompletion> TaskCompletions { get; set; } = new List<TaskCompletion>();
+
+        [Display(Name = "Prioritāte")]
+        public TaskPriority Priority { get; set; } = TaskPriority.Medium;
+    }
+
+    public enum TaskPriority
+    {
+        [Display(Name = "Zema")]
+        Low,
+        [Display(Name = "Vidēja")]
+        Medium,
+        [Display(Name = "Augsta")]
+        High
     }
 
     public enum TaskStatus
