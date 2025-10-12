@@ -176,12 +176,11 @@ namespace TaskManagementApp.Controllers
             return View(project);
         }
 
-        // POST: Projects/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var project = await _context.Projects.Include(p => p.Tasks).FirstOrDefaultAsync(p => p.Id == id);
+            var project = await _context.Projects.FindAsync(id);
             if (project == null)
             {
                 return NotFound();
@@ -191,83 +190,85 @@ namespace TaskManagementApp.Controllers
             {
                 try
                 {
-                    // Recursively delete all tasks and their descendants
-                    var allTasks = await _context.Tasks
+                    var allTasksInProject = await _context.Tasks
                         .Where(t => t.ProjectId == id)
                         .ToListAsync();
 
-                    RemoveTasks(allTasks);
+                    if (allTasksInProject.Any())
+                    {
+                        await DeleteTaskHierarchy(allTasksInProject);
+                    }
 
                     _context.Projects.Remove(project);
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    TempData["SuccessMessage"] = "Project and all its tasks have been deleted successfully!";
+                    TempData["SuccessMessage"] = "Project and all associated data have been deleted successfully!";
                 }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    // Log the error
-                    TempData["ErrorMessage"] = "An error occurred while deleting the project. The operation was rolled back.";
+                    TempData["ErrorMessage"] = "An error occurred during deletion. The operation was rolled back.";
                 }
             }
 
             return RedirectToAction(nameof(Index));
         }
 
-        private void RemoveTasks(IEnumerable<TaskItem> tasks)
+        private async Task DeleteTaskHierarchy(List<TaskItem> tasks)
         {
-            foreach (var task in tasks)
-            {
-                // Load and remove assignments and completions if they are not loaded automatically
-                var assignments = _context.TaskAssignments.Where(a => a.TaskId == task.Id);
-                _context.TaskAssignments.RemoveRange(assignments);
+            var taskIds = tasks.Select(t => t.Id).ToList();
 
-                var completions = _context.TaskCompletions.Where(c => c.TaskId == task.Id);
-                _context.TaskCompletions.RemoveRange(completions);
-            }
+            // Efficiently delete all related assignments and completions in bulk
+            var assignments = await _context.TaskAssignments.Where(a => taskIds.Contains(a.TaskId)).ToListAsync();
+            var completions = await _context.TaskCompletions.Where(c => taskIds.Contains(c.TaskId)).ToListAsync();
+
+            if (assignments.Any()) _context.TaskAssignments.RemoveRange(assignments);
+            if (completions.Any()) _context.TaskCompletions.RemoveRange(completions);
+
+            // Now remove the tasks themselves
             _context.Tasks.RemoveRange(tasks);
+
+            await _context.SaveChangesAsync();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteMultiple(int[] projectIds)
         {
-            if (projectIds == null || projectIds.Length == 0)
+            if (projectIds == null || !projectIds.Any())
             {
                 TempData["ErrorMessage"] = "No projects selected for deletion.";
                 return RedirectToAction(nameof(Index));
             }
 
-            var projectsToDelete = await _context.Projects
-                .Where(p => projectIds.Contains(p.Id))
-                .Include(p => p.Tasks)
-                .ToListAsync();
-
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
-                    foreach (var project in projectsToDelete)
-                    {
-                        var allTasks = await _context.Tasks
-                            .Where(t => t.ProjectId == project.Id)
-                            .ToListAsync();
+                    var projectsToDelete = await _context.Projects
+                        .Where(p => projectIds.Contains(p.Id))
+                        .ToListAsync();
 
-                        RemoveTasks(allTasks);
-                        _context.Projects.Remove(project);
+                    var allTasksToDelete = await _context.Tasks
+                        .Where(t => t.ProjectId.HasValue && projectIds.Contains(t.ProjectId.Value))
+                        .ToListAsync();
+
+                    if (allTasksToDelete.Any())
+                    {
+                        await DeleteTaskHierarchy(allTasksToDelete);
                     }
 
+                    _context.Projects.RemoveRange(projectsToDelete);
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    TempData["SuccessMessage"] = $"{projectsToDelete.Count} project(s) have been deleted successfully.";
+                    TempData["SuccessMessage"] = $"{projectsToDelete.Count} project(s) and all their associated data have been deleted successfully.";
                 }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    // Log the error
-                    TempData["ErrorMessage"] = "An error occurred while deleting the projects. The operation was rolled back.";
+                    TempData["ErrorMessage"] = "An error occurred during bulk deletion. The operation was rolled back.";
                 }
             }
 

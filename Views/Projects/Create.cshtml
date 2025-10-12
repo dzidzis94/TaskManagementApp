@@ -86,6 +86,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const sidebar = document.getElementById('template-sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
             const openBtn = document.getElementById('open-sidebar-btn');
             const closeBtn = document.getElementById('close-sidebar-btn');
             const templateCards = document.querySelectorAll('.template-card');
@@ -98,23 +99,31 @@
 
             let selectedTemplate = null;
 
-            openBtn.addEventListener('click', () => sidebar.classList.add('open'));
-            closeBtn.addEventListener('click', () => sidebar.classList.remove('open'));
+            function openSidebar() {
+                sidebar.classList.add('open');
+                overlay.classList.add('active');
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            }
+
+            openBtn.addEventListener('click', openSidebar);
+            closeBtn.addEventListener('click', closeSidebar);
+            overlay.addEventListener('click', closeSidebar);
 
             templateCards.forEach(card => {
                 card.addEventListener('click', function () {
                     const templateId = this.dataset.templateId;
 
-                    // Toggle selection
-                    if (selectedTemplate && selectedTemplate.id === templateId) {
-                        // Deselect
+                    if (this.classList.contains('selected')) {
                         this.classList.remove('selected');
                         previewArea.style.display = 'none';
                         applyBtn.disabled = true;
                         selectedTemplate = null;
                         selectedTemplateIdField.value = '';
                     } else {
-                        // Select
                         templateCards.forEach(c => c.classList.remove('selected'));
                         this.classList.add('selected');
                         previewArea.style.display = 'block';
@@ -126,13 +135,12 @@
                             description: this.dataset.templateDescription
                         };
 
-                        // Fetch and display preview
-                        previewContent.innerHTML = '<p class="text-muted">Loading preview...</p>';
-                        // Fetch and display preview
                         previewContent.innerHTML = '<p class="text-muted pulse-green">Loading preview...</p>';
-
                         fetch(`/Projects/GetTemplatePreview/${templateId}`)
-                            .then(response => response.json())
+                            .then(response => {
+                                if (!response.ok) throw new Error('Network response was not ok');
+                                return response.json();
+                            })
                             .then(data => {
                                 previewContent.innerHTML = '';
                                 if (data && data.length > 0) {
@@ -142,12 +150,12 @@
                                     data.forEach(section => renderSection(section, list));
                                     previewContent.appendChild(list);
                                 } else {
-                                    previewContent.innerHTML = '<p class="text-muted">This template is empty.</p>';
+                                    previewContent.innerHTML = '<p class="text-muted">This template appears to be empty.</p>';
                                 }
                             })
                             .catch(error => {
                                 console.error('Error fetching template preview:', error);
-                                previewContent.innerHTML = '<p class="text-danger">Could not load preview.</p>';
+                                previewContent.innerHTML = '<p class="text-danger small">An error occurred while loading the preview. Please try again.</p>';
                             });
                     }
                 });
@@ -158,7 +166,7 @@
                     projectNameField.value = selectedTemplate.name;
                     projectDescField.value = selectedTemplate.description;
                     selectedTemplateIdField.value = selectedTemplate.id;
-                    sidebar.classList.remove('open');
+                    closeSidebar();
                 }
             });
 
