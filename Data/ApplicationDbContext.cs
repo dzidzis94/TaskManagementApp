@@ -65,7 +65,7 @@ namespace TaskManagementApp.Data
 
                 // Relationship with Creator (ApplicationUser)
                 entity.HasOne(t => t.CreatedBy)
-                    .WithMany() // A user can create many tasks
+                    .WithMany(u => u.CreatedTasks) // Explicitly point to the CreatedTasks collection
                     .HasForeignKey(t => t.CreatedById)
                     .IsRequired(false)
                     .OnDelete(DeleteBehavior.SetNull); // Keep task if creator is deleted
@@ -78,13 +78,16 @@ namespace TaskManagementApp.Data
             builder.Entity<TaskAssignment>(entity =>
             {
                 entity.HasKey(ta => ta.Id);
+
+                // Explicitly define the relationship from TaskAssignment to TaskItem
                 entity.HasOne(ta => ta.Task)
-                      .WithMany(t => t.TaskAssignments)
+                      .WithMany(t => t.TaskAssignments) // In TaskItem, the collection is TaskAssignments
                       .HasForeignKey(ta => ta.TaskId)
                       .OnDelete(DeleteBehavior.Cascade);
 
+                // Explicitly define the relationship from TaskAssignment to ApplicationUser
                 entity.HasOne(ta => ta.User)
-                      .WithMany() // A user can be assigned to many tasks
+                      .WithMany(u => u.TaskAssignments) // In ApplicationUser, the collection is also TaskAssignments
                       .HasForeignKey(ta => ta.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
