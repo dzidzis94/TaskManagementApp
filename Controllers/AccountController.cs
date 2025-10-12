@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 using TaskManagementApp.Models;
+using TaskManagementApp.ViewModels;
 
 namespace TaskManagementApp.Controllers
 {
@@ -23,31 +25,57 @@ namespace TaskManagementApp.Controllers
         [HttpGet]
         public IActionResult Login(string returnUrl = null)
         {
-            ViewData["ReturnUrl"] = returnUrl ?? "";  // Pievienojam default vērtību
+            ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> Login(string email, string password, string returnUrl = null)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
         {
-            ViewData["ReturnUrl"] = returnUrl ?? "";  // Pievienojam default vērtību
-
-            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+            ViewData["ReturnUrl"] = returnUrl;
+            if (ModelState.IsValid)
             {
-                ModelState.AddModelError(string.Empty, "Lūdzu aizpildiet visus laukus");
-                return View();
+                var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
+                if (result.Succeeded)
+                {
+                    _logger.LogInformation("User logged in.");
+                    return RedirectToLocal(returnUrl);
+                }
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             }
+            return View(model);
+        }
 
-            var result = await _signInManager.PasswordSignInAsync(email, password, isPersistent: false, lockoutOnFailure: false);
-
-            if (result.Succeeded)
-            {
-                _logger.LogInformation("Lietotājs veiksmīgi pieteicās.");
-                return RedirectToLocal(returnUrl ?? "");  // Pievienojam default vērtību
-            }
-
-            ModelState.AddModelError(string.Empty, "Nepareizs e-pasts vai parole");
+        [HttpGet]
+        public IActionResult Register(string returnUrl = null)
+        {
+            ViewData["ReturnUrl"] = returnUrl;
             return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Register(RegisterViewModel model, string returnUrl = null)
+        {
+            ViewData["ReturnUrl"] = returnUrl;
+            if (ModelState.IsValid)
+            {
+                var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FirstName = model.FirstName, LastName = model.LastName };
+                var result = await _userManager.CreateAsync(user, model.Password);
+                if (result.Succeeded)
+                {
+                    _logger.LogInformation("User created a new account with password.");
+                    await _userManager.AddToRoleAsync(user, "User"); // Default role
+                    await _signInManager.SignInAsync(user, isPersistent: false);
+                    return RedirectToLocal(returnUrl);
+                }
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+            }
+            return View(model);
         }
 
         [HttpPost]
@@ -55,7 +83,7 @@ namespace TaskManagementApp.Controllers
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
-            _logger.LogInformation("Lietotājs veiksmīgi izgājis no sistēmas.");
+            _logger.LogInformation("User logged out.");
             return RedirectToAction("Index", "Home");
         }
 

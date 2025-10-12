@@ -1,26 +1,29 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TaskManagementApp.Data;
-using TaskManagementApp.Models;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Threading.Tasks;
+using TaskManagementApp.Models;
+using TaskManagementApp.Services.Interfaces;
 
 namespace TaskManagementApp.Controllers
 {
     [Authorize(Roles = "Admin")]
     public class ProjectsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IProjectService _projectService;
+        private readonly ILogger<ProjectsController> _logger;
 
-        public ProjectsController(ApplicationDbContext context)
+        public ProjectsController(IProjectService projectService, ILogger<ProjectsController> logger)
         {
-            _context = context;
+            _projectService = projectService;
+            _logger = logger;
         }
 
         // GET: Projects
         public async Task<IActionResult> Index()
         {
-            var projects = await _context.Projects.ToListAsync();
+            var projects = await _projectService.GetAllProjectsAsync();
             return View(projects);
         }
 
@@ -32,10 +35,7 @@ namespace TaskManagementApp.Controllers
                 return NotFound();
             }
 
-            var project = await _context.Projects
-                .Include(p => p.Tasks)
-                .FirstOrDefaultAsync(m => m.Id == id);
-
+            var project = await _projectService.GetProjectByIdAsync(id.Value);
             if (project == null)
             {
                 return NotFound();
@@ -47,7 +47,7 @@ namespace TaskManagementApp.Controllers
         // GET: Projects/Create
         public async Task<IActionResult> Create()
         {
-            ViewBag.ProjectTemplates = await _context.ProjectTemplates.ToListAsync();
+            ViewBag.ProjectTemplates = await _projectService.GetAllProjectTemplatesAsync();
             return View();
         }
 
@@ -58,72 +58,20 @@ namespace TaskManagementApp.Controllers
         {
             if (ModelState.IsValid)
             {
-                _context.Add(project);
-                await _context.SaveChangesAsync(); // First save to get the project Id
-
-                if (templateId.HasValue)
+                try
                 {
-                    var template = await _context.ProjectTemplates
-                        .Include(t => t.Sections) // Include all sections related to the template
-                        .FirstOrDefaultAsync(t => t.Id == templateId.Value);
-
-                    if (template != null)
-                    {
-                        // Manually build the hierarchy
-                        var sectionMap = template.Sections.ToDictionary(s => s.Id);
-                        foreach (var section in template.Sections)
-                        {
-                            if (section.ParentSectionId.HasValue && sectionMap.ContainsKey(section.ParentSectionId.Value))
-                            {
-                                var parent = sectionMap[section.ParentSectionId.Value];
-                                if (parent.ChildSections == null)
-                                {
-                                    parent.ChildSections = new List<TemplateSection>();
-                                }
-                                parent.ChildSections.Add(section);
-                            }
-                        }
-
-                        // Process only the root sections
-                        foreach (var section in template.Sections.Where(s => s.ParentSectionId == null))
-                        {
-                            CreateTaskFromSection(section, project, null);
-                        }
-                        await _context.SaveChangesAsync();
-                    }
+                    await _projectService.CreateProjectAsync(project, templateId);
+                    TempData["SuccessMessage"] = "Project created successfully!";
+                    return RedirectToAction(nameof(Index));
                 }
-
-                TempData["SuccessMessage"] = "Project created successfully!";
-                return RedirectToAction(nameof(Index));
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error creating project.");
+                    ModelState.AddModelError("", "An unexpected error occurred while creating the project.");
+                }
             }
-            ViewBag.ProjectTemplates = await _context.ProjectTemplates.ToListAsync();
+            ViewBag.ProjectTemplates = await _projectService.GetAllProjectTemplatesAsync();
             return View(project);
-        }
-
-        private void CreateTaskFromSection(TemplateSection section, Project project, TaskItem parentTask)
-        {
-            var task = new TaskItem
-            {
-                Title = section.Title,
-                Description = section.Description,
-                ProjectId = project.Id,
-                ParentTask = parentTask,
-                Priority = section.Priority,
-                DueDate = section.DueDateOffsetDays.HasValue
-                    ? DateTime.UtcNow.AddDays(section.DueDateOffsetDays.Value)
-                    : (DateTime?)null
-            };
-            _context.Tasks.Add(task);
-
-            // Note: We need to load ChildSections explicitly if they aren't already.
-            // This implementation assumes they are loaded.
-            if (section.ChildSections != null)
-            {
-                foreach (var childSection in section.ChildSections)
-                {
-                    CreateTaskFromSection(childSection, project, task);
-                }
-            }
         }
 
         // GET: Projects/Edit/5
@@ -134,7 +82,7 @@ namespace TaskManagementApp.Controllers
                 return NotFound();
             }
 
-            var project = await _context.Projects.FindAsync(id);
+            var project = await _projectService.GetProjectByIdAsync(id.Value);
             if (project == null)
             {
                 return NotFound();
@@ -156,19 +104,19 @@ namespace TaskManagementApp.Controllers
             {
                 try
                 {
-                    _context.Update(project);
-                    await _context.SaveChangesAsync();
+                    await _projectService.UpdateProjectAsync(project);
                     TempData["SuccessMessage"] = "Project updated successfully!";
                 }
-                catch (DbUpdateConcurrencyException)
+                catch (Exception ex)
                 {
-                    if (!ProjectExists(project.Id))
+                    _logger.LogError(ex, "Error updating project {ProjectId}", project.Id);
+                    if (!await _projectService.ProjectExistsAsync(project.Id))
                     {
                         return NotFound();
                     }
                     else
                     {
-                        throw;
+                        ModelState.AddModelError("", "An unexpected error occurred while updating the project.");
                     }
                 }
                 return RedirectToAction(nameof(Index));
@@ -176,155 +124,59 @@ namespace TaskManagementApp.Controllers
             return View(project);
         }
 
+        // POST: Projects/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var project = await _context.Projects.FindAsync(id);
-            if (project == null)
+            try
             {
-                return NotFound();
+                await _projectService.DeleteProjectAsync(id);
+                TempData["SuccessMessage"] = "Project and all associated data have been deleted successfully!";
             }
-
-            using (var transaction = await _context.Database.BeginTransactionAsync())
+            catch (Exception ex)
             {
-                try
-                {
-                    var allTasksInProject = await _context.Tasks
-                        .Where(t => t.ProjectId == id)
-                        .ToListAsync();
-
-                    if (allTasksInProject.Any())
-                    {
-                        await DeleteTaskHierarchy(allTasksInProject);
-                    }
-
-                    _context.Projects.Remove(project);
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    TempData["SuccessMessage"] = "Project and all associated data have been deleted successfully!";
-                }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-                    TempData["ErrorMessage"] = "An error occurred during deletion. The operation was rolled back.";
-                }
+                _logger.LogError(ex, "Error deleting project {ProjectId}", id);
+                TempData["ErrorMessage"] = "An error occurred during deletion.";
             }
-
             return RedirectToAction(nameof(Index));
         }
 
-        private async Task DeleteTaskHierarchy(List<TaskItem> tasks)
-        {
-            var taskIds = tasks.Select(t => t.Id).ToList();
-
-            // Efficiently delete all related assignments and completions in bulk
-            var assignments = await _context.TaskAssignments.Where(a => taskIds.Contains(a.TaskId)).ToListAsync();
-            var completions = await _context.TaskCompletions.Where(c => taskIds.Contains(c.TaskId)).ToListAsync();
-
-            if (assignments.Any()) _context.TaskAssignments.RemoveRange(assignments);
-            if (completions.Any()) _context.TaskCompletions.RemoveRange(completions);
-
-            // Now remove the tasks themselves
-            _context.Tasks.RemoveRange(tasks);
-
-            await _context.SaveChangesAsync();
-        }
-
+        // POST: Projects/DeleteMultiple
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteMultiple(int[] projectIds)
         {
-            if (projectIds == null || !projectIds.Any())
+            if (projectIds == null || projectIds.Length == 0)
             {
                 TempData["ErrorMessage"] = "No projects selected for deletion.";
                 return RedirectToAction(nameof(Index));
             }
 
-            using (var transaction = await _context.Database.BeginTransactionAsync())
+            try
             {
-                try
-                {
-                    var projectsToDelete = await _context.Projects
-                        .Where(p => projectIds.Contains(p.Id))
-                        .ToListAsync();
-
-                    var allTasksToDelete = await _context.Tasks
-                        .Where(t => t.ProjectId.HasValue && projectIds.Contains(t.ProjectId.Value))
-                        .ToListAsync();
-
-                    if (allTasksToDelete.Any())
-                    {
-                        await DeleteTaskHierarchy(allTasksToDelete);
-                    }
-
-                    _context.Projects.RemoveRange(projectsToDelete);
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    TempData["SuccessMessage"] = $"{projectsToDelete.Count} project(s) and all their associated data have been deleted successfully.";
-                }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-                    TempData["ErrorMessage"] = "An error occurred during bulk deletion. The operation was rolled back.";
-                }
+                await _projectService.DeleteMultipleProjectsAsync(projectIds);
+                TempData["SuccessMessage"] = $"{projectIds.Length} project(s) and all their associated data have been deleted successfully.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during bulk deletion of projects.");
+                TempData["ErrorMessage"] = "An error occurred during bulk deletion.";
             }
 
             return RedirectToAction(nameof(Index));
         }
 
-        private bool ProjectExists(int id)
-        {
-            return _context.Projects.Any(e => e.Id == id);
-        }
-
+        // GET: Projects/GetTemplatePreview/5
         [HttpGet]
         public async Task<IActionResult> GetTemplatePreview(int id)
         {
-            var template = await _context.ProjectTemplates
-                .Include(t => t.Sections)
-                .FirstOrDefaultAsync(t => t.Id == id);
-
-            if (template == null)
+            var preview = await _projectService.GetTemplatePreviewAsync(id);
+            if (preview == null)
             {
                 return NotFound();
             }
-
-            var sections = template.Sections.ToList();
-            var sectionMap = sections.ToDictionary(s => s.Id);
-            var rootSections = new List<TemplateSection>();
-
-            foreach (var section in sections)
-            {
-                if (section.ParentSectionId.HasValue && sectionMap.ContainsKey(section.ParentSectionId.Value))
-                {
-                    var parent = sectionMap[section.ParentSectionId.Value];
-                    if (parent.ChildSections == null) parent.ChildSections = new List<TemplateSection>();
-                    parent.ChildSections.Add(section);
-                }
-                else
-                {
-                    rootSections.Add(section);
-                }
-            }
-
-            // Use anonymous types to avoid circular references
-            Func<TemplateSection, object> sectionSelector = null;
-            sectionSelector = s => new
-            {
-                s.Id,
-                s.Title,
-                s.Description,
-                Priority = s.Priority.ToString(),
-                s.DueDateOffsetDays,
-                Children = s.ChildSections.Select(child => sectionSelector(child))
-            };
-
-            var result = rootSections.Select(s => sectionSelector(s));
-
-            return Json(result);
+            return Json(preview);
         }
     }
 }

@@ -1,0 +1,194 @@
+/* ---
+    Modern Dark Theme
+    - Background: Black (#000000)
+    - Highlights: Green (#00FF66)
+    - Panels/Secondary: Dark Gray (#1A1A1A)
+--- */
+
+:root {
+    --primary-bg-color: #000000;
+    --secondary-bg-color: #1A1A1A;
+    --accent-color: #00FF66;
+    --text-color: #E0E0E0;
+    --text-color-darker: #A0A0A0;
+    --border-color: #2A2A2A;
+    --success-color: #00FF66;
+    --error-color: #FF4D4D;
+    --info-color: #4DA6FF;
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--primary-bg-color);
+    color: var(--text-color);
+    font-family: var(--font-family);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+.container-fluid {
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+/* --- Typography --- */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+a {
+    color: var(--accent-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+/* --- Layout & Cards --- */
+.card {
+    background-color: var(--secondary-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.card-header {
+    background-color: #222222;
+    color: var(--accent-color);
+    font-weight: bold;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.card-footer {
+    background-color: #222222;
+    border-top: 1px solid var(--border-color);
+}
+
+/* --- Buttons --- */
+.btn {
+    border-radius: 5px;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background-color: var(--accent-color);
+    color: var(--primary-bg-color);
+    border-color: var(--accent-color);
+}
+
+.btn-primary:hover {
+    background-color: #00E65C;
+    border-color: #00E65C;
+    box-shadow: 0 0 10px var(--accent-color);
+}
+
+.btn-secondary {
+    background-color: #333;
+    color: var(--text-color);
+    border-color: #444;
+}
+
+.btn-secondary:hover {
+    background-color: #444;
+}
+
+.btn-danger {
+    background-color: var(--error-color);
+    color: #fff;
+    border-color: var(--error-color);
+}
+
+/* --- Forms --- */
+.form-control {
+    background-color: #222;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+}
+
+.form-control:focus {
+    background-color: #333;
+    color: var(--text-color);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 5px var(--accent-color);
+}
+
+/* --- Tables --- */
+.table {
+    background-color: var(--secondary-bg-color);
+    color: var(--text-color);
+}
+
+.table th, .table td {
+    border-color: var(--border-color);
+}
+
+.table-hover tbody tr:hover {
+    background-color: #252525;
+    color: #fff;
+}
+
+/* --- Alerts & Notifications --- */
+.alert {
+    border-radius: 5px;
+    padding: 1rem;
+}
+.alert-success {
+    background-color: rgba(0, 255, 102, 0.1);
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
+}
+.alert-danger {
+    background-color: rgba(255, 77, 77, 0.1);
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+}
+.alert-info {
+    background-color: rgba(77, 166, 255, 0.1);
+    color: var(--info-color);
+    border: 1px solid var(--info-color);
+}
+
+/* --- Navbar --- */
+.navbar {
+    background-color: var(--secondary-bg-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.navbar-brand {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+.navbar-nav .nav-link {
+    color: var(--text-color);
+}
+
+.navbar-nav .nav-link.active,
+.navbar-nav .nav-link:hover {
+    color: var(--accent-color);
+}
+
+/* --- Task Specific Styles --- */
+.task-card {
+    border-left: 5px solid var(--accent-color);
+}
+
+.task-priority-High { border-color: var(--error-color); }
+.task-priority-Medium { border-color: var(--info-color); }
+.task-priority-Low { border-color: #6c757d; }
+
+.task-status-Completed { text-decoration: line-through; opacity: 0.7; }

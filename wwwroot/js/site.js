@@ -1,91 +1,83 @@
-﻿// Task Management App JavaScript
+// General Site-wide JavaScript
 document.addEventListener('DOMContentLoaded', function () {
-    // Auto-hide alerts after 5 seconds
+    // Auto-hide Bootstrap alerts after 5 seconds
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
         setTimeout(() => {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
+            // Ensure the alert still exists before trying to close it
+            if (alert.parentNode) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }
         }, 5000);
     });
 
-    // Apakšuzdevumu sakļaušanas/izvēršanas funkcionalitāte
-    const toggleButtons = document.querySelectorAll('.toggle-subtasks');
-    toggleButtons.forEach(button => {
-        button.addEventListener('click', function () {
-            const taskId = this.getAttribute('data-task-id');
+    // Sub-task toggling functionality
+    document.body.addEventListener('click', function(e) {
+        if (e.target.matches('.toggle-subtasks, .toggle-subtasks *')) {
+            const button = e.target.closest('.toggle-subtasks');
+            const taskId = button.getAttribute('data-task-id');
             const subTasks = document.getElementById(`subtasks-${taskId}`);
-            const icon = this.querySelector('i');
+            const icon = button.querySelector('i');
 
-            if (subTasks.style.display === 'none') {
+            if (subTasks.style.display === 'none' || subTasks.style.display === '') {
                 subTasks.style.display = 'block';
-                icon.className = 'fas fa-chevron-down';
-                this.title = 'Paslēpt apakšuzdevumus';
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-down');
+                button.title = 'Hide sub-tasks';
             } else {
                 subTasks.style.display = 'none';
-                icon.className = 'fas fa-chevron-right';
-                this.title = 'Rādīt apakšuzdevumus';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-right');
+                button.title = 'Show sub-tasks';
             }
-        });
+        }
     });
 
-    // Task item hover effects
-    const taskItems = document.querySelectorAll('.task-item');
-    taskItems.forEach(item => {
-        item.addEventListener('mouseenter', function () {
-            this.style.transform = 'translateY(-2px)';
-        });
-
-        item.addEventListener('mouseleave', function () {
-            this.style.transform = 'translateY(0)';
-        });
-    });
-
-    // Due date validation
+    // Due date validation - prevent past dates
     const dueDateInput = document.querySelector('input[type="date"]');
     if (dueDateInput) {
         dueDateInput.addEventListener('change', function () {
             const selectedDate = new Date(this.value);
             const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            today.setHours(0, 0, 0, 0); // Reset time to compare dates only
 
             if (selectedDate < today) {
-                alert('Izvēlētais datums nevar būt pagātnē!');
-                this.value = '';
+                alert('The selected date cannot be in the past!');
+                this.value = ''; // Clear the invalid date
             }
         });
     }
 
-    // Form validation enhancement
-    const forms = document.querySelectorAll('form');
-    forms.forEach(form => {
-        form.addEventListener('submit', function (e) {
-            const requiredFields = this.querySelectorAll('[required]');
-            let isValid = true;
+    // User assignment selection logic on the task creation form
+    const assignmentSpecific = document.getElementById('assignmentSpecific');
+    const assignmentAll = document.getElementById('assignmentAll');
+    const userSelection = document.getElementById('userSelection');
 
-            requiredFields.forEach(field => {
-                if (!field.value.trim()) {
-                    isValid = false;
-                    field.classList.add('is-invalid');
-                } else {
-                    field.classList.remove('is-invalid');
-                }
-            });
+    function toggleUserSelection() {
+        if (!userSelection) return;
 
-            if (!isValid) {
-                e.preventDefault();
-                alert('Lūdzu aizpildiet visus obligātos laukus!');
+        if (assignmentAll && assignmentAll.checked) {
+            userSelection.style.display = 'none';
+            // Clear selected users
+            const select = userSelection.querySelector('select');
+            if(select) {
+                Array.from(select.options).forEach(option => option.selected = false);
             }
-        });
-    });
+        } else {
+            userSelection.style.display = 'block';
+        }
+    }
+
+    if (assignmentSpecific && assignmentAll) {
+        assignmentSpecific.addEventListener('change', toggleUserSelection);
+        assignmentAll.addEventListener('change', toggleUserSelection);
+        // Initialize state on page load
+        toggleUserSelection();
+    }
 });
 
-// Utility functions
-function formatDate(dateString) {
-    const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
-    return new Date(dateString).toLocaleDateString('lv-LV', options);
-}
-
+// Utility function to show a loading spinner
 function showLoading() {
     const loader = document.createElement('div');
     loader.className = 'loading-overlay';
@@ -97,31 +89,10 @@ function showLoading() {
     document.body.appendChild(loader);
 }
 
+// Utility function to hide the loading spinner
 function hideLoading() {
     const loader = document.querySelector('.loading-overlay');
     if (loader) {
         loader.remove();
     }
 }
-// Lietotāja izvēles pārvaldīšana
-document.addEventListener('DOMContentLoaded', function () {
-    const assignmentSpecific = document.getElementById('assignmentSpecific');
-    const assignmentAll = document.getElementById('assignmentAll');
-    const userSelection = document.getElementById('userSelection');
-
-    function toggleUserSelection() {
-        if (assignmentAll.checked) {
-            userSelection.style.display = 'none';
-            // Notīra izvēlēto lietotāju
-            document.getElementById('AssignedUserId').value = '';
-        } else {
-            userSelection.style.display = 'block';
-        }
-    }
-
-    assignmentSpecific.addEventListener('change', toggleUserSelection);
-    assignmentAll.addEventListener('change', toggleUserSelection);
-
-    // Inicializē sākuma stāvokli
-    toggleUserSelection();
-});
