@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskManagementApp.Data;
@@ -36,54 +36,16 @@ namespace TaskManagementApp.Controllers
             {
                 _context.Add(templateSection);
                 await _context.SaveChangesAsync();
+
+                // Ja ir AJAX pieprasījums, atgriežam daļējo skatu
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return PartialView("ProjectTemplates/_SectionEditorRow", templateSection);
+                }
+
                 return RedirectToAction("Edit", "ProjectTemplates", new { id = templateSection.ProjectTemplateId });
             }
             return View(templateSection);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [FromBody] TemplateSection templateSection)
-        {
-            if (id != templateSection.Id)
-            {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(templateSection);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!TemplateSectionExists(templateSection.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return Ok();
-            }
-            return BadRequest(ModelState);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([FromBody] TemplateSection templateSection)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Add(templateSection);
-                await _context.SaveChangesAsync();
-                return PartialView("ProjectTemplates/_SectionEditorRow", templateSection);
-            }
-            return BadRequest(ModelState);
         }
 
         // GET: TemplateSections/Edit/5
@@ -123,6 +85,12 @@ namespace TaskManagementApp.Controllers
                 {
                     _context.Update(templateSection);
                     await _context.SaveChangesAsync();
+
+                    // Ja ir AJAX pieprasījums, atgriežam OK
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        return Ok();
+                    }
                 }
                 catch (DbUpdateConcurrencyException)
                 {
