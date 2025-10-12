@@ -16,6 +16,12 @@ namespace TaskManagementApp.Models
 
         public int Order { get; set; }
 
+        public TaskPriority Priority { get; set; } = TaskPriority.Medium;
+
+        // How many days from project creation this task should be due.
+        // Null means no due date.
+        public int? DueDateOffsetDays { get; set; }
+
         public int ProjectTemplateId { get; set; }
         [ForeignKey("ProjectTemplateId")]
         public virtual ProjectTemplate ProjectTemplate { get; set; }
