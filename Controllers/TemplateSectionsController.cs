@@ -27,31 +27,18 @@ namespace TaskManagementApp.Controllers
             return View();
         }
 
-        // POST: TemplateSections/Create
-        [HttpPost]
+        // POST: api/templates/sections
+        [HttpPost("api/templates/sections")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Title,Description,Order,ProjectTemplateId,ParentSectionId")] TemplateSection templateSection)
+        public async Task<IActionResult> Create([Bind("Title,ProjectTemplateId,ParentSectionId")] TemplateSection templateSection)
         {
             if (ModelState.IsValid)
             {
                 _context.Add(templateSection);
                 await _context.SaveChangesAsync();
-
-                // Ja ir AJAX pieprasījums, atgriežam daļējo skatu
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                {
-                    return PartialView("ProjectTemplates/_SectionEditorRow", templateSection);
-                }
-
-                return RedirectToAction("Edit", "ProjectTemplates", new { id = templateSection.ProjectTemplateId });
+                return Ok(new { id = templateSection.Id });
             }
-
-            // If we got this far, something failed, redisplay form
-            ViewBag.ProjectTemplateId = templateSection.ProjectTemplateId;
-            ViewBag.ParentSections = await _context.TemplateSections
-                .Where(s => s.ProjectTemplateId == templateSection.ProjectTemplateId)
-                .ToListAsync();
-            return View(templateSection);
+            return BadRequest(ModelState);
         }
 
         // GET: TemplateSections/Edit/5
@@ -75,43 +62,23 @@ namespace TaskManagementApp.Controllers
             return View(templateSection);
         }
 
-        // POST: TemplateSections/Edit/5
-        [HttpPost]
+        // POST: api/templates/sections/5
+        [HttpPost("api/templates/sections/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Order,ProjectTemplateId,ParentSectionId")] TemplateSection templateSection)
+        public async Task<IActionResult> Edit(int id, string title, string description)
         {
-            if (id != templateSection.Id)
+            var sectionToUpdate = await _context.TemplateSections.FindAsync(id);
+
+            if (sectionToUpdate == null)
             {
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(templateSection);
-                    await _context.SaveChangesAsync();
-
-                    // Ja ir AJAX pieprasījums, atgriežam OK
-                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                    {
-                        return Ok();
-                    }
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!TemplateSectionExists(templateSection.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction("Edit", "ProjectTemplates", new { id = templateSection.ProjectTemplateId });
-            }
-            return View(templateSection);
+            sectionToUpdate.Title = title;
+            sectionToUpdate.Description = description;
+            _context.Update(sectionToUpdate);
+            await _context.SaveChangesAsync();
+            return Ok();
         }
 
         private bool TemplateSectionExists(int id)
@@ -119,10 +86,10 @@ namespace TaskManagementApp.Controllers
             return _context.TemplateSections.Any(e => e.Id == id);
         }
 
-        // POST: TemplateSections/Delete/5
-        [HttpPost, ActionName("Delete")]
+        // POST: api/templates/sections/delete/5
+        [HttpPost("api/templates/sections/delete/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> Delete(int id)
         {
             var templateSection = await _context.TemplateSections
                 .Include(s => s.ChildSections)
@@ -133,15 +100,13 @@ namespace TaskManagementApp.Controllers
                 return NotFound();
             }
 
-            var projectTemplateId = templateSection.ProjectTemplateId;
-
             var sectionsToDelete = new List<TemplateSection>();
             FindSectionsToDelete(templateSection, sectionsToDelete);
 
             _context.TemplateSections.RemoveRange(sectionsToDelete);
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("Edit", "ProjectTemplates", new { id = projectTemplateId });
+            return Ok();
         }
 
         private void FindSectionsToDelete(TemplateSection section, List<TemplateSection> sectionsToDelete)
@@ -153,26 +118,41 @@ namespace TaskManagementApp.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("api/templates/sections/update-structure")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateStructure(int projectTemplateId, [FromBody] List<TemplateSection> sections)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var sectionIds = sections.Select(s => s.Id).ToList();
             var existingSections = await _context.TemplateSections
-                .Where(s => s.ProjectTemplateId == projectTemplateId)
+                .Where(s => s.ProjectTemplateId == projectTemplateId && sectionIds.Contains(s.Id))
                 .ToListAsync();
 
-            foreach (var section in sections)
+            var sectionMap = existingSections.ToDictionary(s => s.Id);
+
+            foreach (var sectionData in sections)
             {
-                var existingSection = existingSections.FirstOrDefault(s => s.Id == section.Id);
-                if (existingSection != null)
+                if (sectionMap.TryGetValue(sectionData.Id, out var existingSection))
                 {
-                    existingSection.ParentSectionId = section.ParentSectionId;
-                    existingSection.Order = section.Order;
+                    existingSection.ParentSectionId = sectionData.ParentSectionId;
+                    existingSection.Order = sectionData.Order;
                 }
             }
 
-            await _context.SaveChangesAsync();
-            return Ok();
+            try
+            {
+                await _context.SaveChangesAsync();
+                return Ok();
+            }
+            catch (DbUpdateException ex)
+            {
+                // Log the error
+                return StatusCode(500, "A database error occurred while updating the template structure.");
+            }
         }
     }
 }

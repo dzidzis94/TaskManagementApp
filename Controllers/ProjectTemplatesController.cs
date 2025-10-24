@@ -44,6 +44,22 @@ namespace TaskManagementApp.Controllers
             return View(projectTemplate);
         }
 
+        // GET: ProjectTemplates/EditTree/5
+        public async Task<IActionResult> EditTree(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var projectTemplate = await _context.ProjectTemplates.FindAsync(id);
+            if (projectTemplate == null)
+            {
+                return NotFound();
+            }
+            return View(projectTemplate);
+        }
+
         // GET: ProjectTemplates/Create
         public IActionResult Create()
         {
@@ -132,7 +148,7 @@ namespace TaskManagementApp.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        [HttpGet]
+        [HttpGet("api/templates/{id}")]
         public async Task<IActionResult> GetTemplateJson(int id)
         {
             var sections = await _context.TemplateSections

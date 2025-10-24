@@ -1,0 +1,355 @@
+@model TaskManagementApp.Models.ProjectTemplate
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+@{
+    ViewData["Title"] = "Template Editor";
+}
+
+<style>
+    .tree-container {
+        list-style-type: none;
+        padding-left: 0;
+    }
+
+    .tree-item {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        margin-top: -1px; /* Prevent double borders */
+        background-color: #f9f9f9;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-radius: 4px;
+    }
+
+    .tree-item-content {
+        cursor: grab;
+        display: flex;
+        align-items: center;
+    }
+
+    .tree-children {
+        padding-left: 25px;
+        list-style-type: none;
+        border-left: 1px dashed #ccc;
+        margin-left: 10px;
+    }
+
+    .toggle {
+        cursor: pointer;
+        margin-right: 8px;
+        width: 1em; /* Ensure alignment */
+    }
+
+    .tree-children.collapsed {
+        display: none;
+    }
+
+    .tree-item-actions .btn {
+        margin-left: 5px;
+    }
+
+    .sortable-ghost {
+        background-color: #cce5ff;
+        opacity: 0.7;
+    }
+
+</style>
+
+<div class="container-fluid" id="template-editor-container" data-antiforgery-token="@Xsrf.GetAndStoreTokens(HttpContext).RequestToken">
+    <div class="row">
+        <div class="col-lg-12">
+            <h1 class="mt-4">@ViewData["Title"]</h1>
+            <p>Manage the structure of the "@Model.Name" template.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Template Structure</span>
+                        <div>
+                            <button id="add-root-section" class="btn btn-primary"><i class="fas fa-plus"></i> Add Root Section</button>
+                            <button id="expand-all" class="btn btn-secondary"><i class="fas fa-expand-arrows-alt"></i> Expand All</button>
+                            <button id="collapse-all" class="btn btn-secondary"><i class="fas fa-compress-arrows-alt"></i> Collapse All</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="template-tree">
+                        <!-- Loading spinner -->
+                        <div class="d-flex justify-content-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/sortablejs/Sortable.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const templateTree = document.getElementById('template-tree');
+            const templateId = @Model.Id;
+            const container = document.getElementById('template-editor-container');
+
+            async function fetchTemplateData() {
+                const response = await fetch(`/api/templates/${templateId}`);
+                if (!response.ok) {
+                    console.error('Failed to fetch template data');
+                    templateTree.innerHTML = '<p class="text-danger">Error loading template structure.</p>';
+                    return;
+                }
+                const sections = await response.json();
+                buildAndRenderTree(sections);
+            }
+
+            function buildAndRenderTree(sections) {
+                const sectionsById = new Map(sections.map(s => [s.id, { ...s, children: [] }]));
+                const roots = [];
+
+                for (const section of sectionsById.values()) {
+                    if (section.parentSectionId && sectionsById.has(section.parentSectionId)) {
+                        sectionsById.get(section.parentSectionId).children.push(section);
+                    } else {
+                        roots.push(section);
+                    }
+                }
+
+                templateTree.innerHTML = '';
+                const treeContainer = document.createElement('ul');
+                treeContainer.className = 'tree-container';
+                treeContainer.id = 'root-sortable';
+
+                if (roots.length > 0) {
+                    roots.forEach(root => {
+                        treeContainer.appendChild(createTreeNode(root));
+                    });
+                } else {
+                    templateTree.innerHTML = '<p>This template has no sections yet. Add a root section to get started.</p>';
+                }
+
+                templateTree.appendChild(treeContainer);
+                initializeSortable();
+            }
+
+            function createTreeNode(section) {
+                const li = document.createElement('li');
+                li.dataset.id = section.id;
+                li.dataset.description = section.description;
+                li.className = 'tree-node';
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'tree-item';
+
+                const itemContentDiv = document.createElement('div');
+                itemContentDiv.className = 'tree-item-content';
+
+                const toggleSpan = document.createElement('span');
+                toggleSpan.className = 'toggle';
+                if (section.children.length > 0) {
+                    toggleSpan.innerHTML = '<i class="fas fa-caret-down"></i>';
+                }
+
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'section-title';
+                titleSpan.textContent = section.title;
+
+                itemContentDiv.appendChild(toggleSpan);
+                itemContentDiv.appendChild(titleSpan);
+                itemDiv.appendChild(itemContentDiv);
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'tree-item-actions';
+                actionsDiv.innerHTML = `
+                    <button class="btn btn-sm btn-outline-secondary add-child" title="Add Child"><i class="fas fa-plus"></i></button>
+                    <button class="btn btn-sm btn-outline-secondary edit" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="btn btn-sm btn-outline-danger delete" title="Delete"><i class="fas fa-trash"></i></button>
+                `;
+                itemDiv.appendChild(actionsDiv);
+
+                li.appendChild(itemDiv);
+
+                if (section.children.length > 0) {
+                    const childrenUl = document.createElement('ul');
+                    childrenUl.className = 'tree-children';
+                    section.children.forEach(child => {
+                        childrenUl.appendChild(createTreeNode(child));
+                    });
+                    li.appendChild(childrenUl);
+                }
+
+                return li;
+            }
+
+            function initializeSortable() {
+                const sortableContainers = templateTree.querySelectorAll('.tree-container, .tree-children');
+                sortableContainers.forEach(container => {
+                    new Sortable(container, {
+                        group: 'nested',
+                        animation: 150,
+                        fallbackOnBody: true,
+                        swapThreshold: 0.65,
+                        onEnd: updateStructure
+                    });
+                });
+            }
+
+            async function updateStructure() {
+                const sections = [];
+                const rootNodes = templateTree.querySelectorAll('#root-sortable > .tree-node');
+
+                function traverse(node, parentId) {
+                    const id = parseInt(node.dataset.id);
+                    const order = Array.from(node.parentNode.children).indexOf(node);
+                    sections.push({ id: id, parentSectionId: parentId, order: order });
+
+                    const childrenContainer = node.querySelector('.tree-children');
+                    if (childrenContainer) {
+                        childrenContainer.querySelectorAll(':scope > .tree-node').forEach(childNode => {
+                            traverse(childNode, id);
+                        });
+                    }
+                }
+
+                rootNodes.forEach((node, index) => traverse(node, null));
+
+                const response = await fetch(`/api/templates/sections/update-structure?projectTemplateId=${templateId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': getAntiForgeryToken()
+                    },
+                    body: JSON.stringify(sections)
+                });
+
+                if (!response.ok) {
+                    console.error('Failed to update structure');
+                    alert('Error: Could not save the new structure.');
+                }
+            }
+
+            async function createSection(title, parentId) {
+                const formData = new FormData();
+                formData.append('Title', title);
+                formData.append('ProjectTemplateId', templateId);
+                if (parentId) {
+                    formData.append('ParentSectionId', parentId);
+                }
+
+                const response = await fetch('/api/templates/sections', {
+                    method: 'POST',
+                    headers: { 'RequestVerificationToken': getAntiForgeryToken() },
+                    body: new URLSearchParams(formData)
+                });
+
+                if (response.ok) {
+                    await fetchTemplateData();
+                } else {
+                    console.error('Failed to create section');
+                    alert('Error: Could not create the section.');
+                }
+            }
+
+            async function editSection(id, newTitle, newDescription) {
+                const response = await fetch(`/api/templates/sections/${id}?title=${encodeURIComponent(newTitle)}&description=${encodeURIComponent(newDescription)}`, {
+                    method: 'POST',
+                    headers: { 'RequestVerificationToken': getAntiForgeryToken() }
+                });
+
+                if (response.ok) {
+                    // Just update the title in the DOM to avoid full re-render
+                    const node = templateTree.querySelector(`.tree-node[data-id="${id}"]`);
+                    if (node) {
+                        node.querySelector('.section-title').textContent = newTitle;
+                        node.dataset.description = newDescription;
+                    }
+                } else {
+                    console.error('Failed to edit section');
+                    alert('Error: Could not update the section.');
+                }
+            }
+
+            async function deleteSection(id) {
+                if (!confirm('Are you sure you want to delete this section and all its children?')) return;
+
+                const response = await fetch(`/api/templates/sections/delete/${id}`, {
+                    method: 'POST',
+                    headers: { 'RequestVerificationToken': getAntiForgeryToken() }
+                });
+
+                if (response.ok) {
+                    const node = templateTree.querySelector(`.tree-node[data-id="${id}"]`);
+                    if (node) {
+                        node.remove();
+                    }
+                } else {
+                    console.error('Failed to delete section');
+                    alert('Error: Could not delete the section.');
+                }
+            }
+
+            document.getElementById('add-root-section').addEventListener('click', () => {
+                const title = prompt('Enter a title for the new root section:');
+                if (title) createSection(title, null);
+            });
+
+            templateTree.addEventListener('click', (e) => {
+                const toggle = e.target.closest('.toggle');
+                if (toggle) {
+                    const children = toggle.closest('.tree-node').querySelector('.tree-children');
+                    if (children) {
+                        children.classList.toggle('collapsed');
+                        toggle.innerHTML = children.classList.contains('collapsed')
+                            ? '<i class="fas fa-caret-right"></i>'
+                            : '<i class="fas fa-caret-down"></i>';
+                    }
+                    return;
+                }
+
+                const actionButton = e.target.closest('.tree-item-actions .btn');
+                if (actionButton) {
+                    const parentNode = actionButton.closest('.tree-node');
+                    const sectionId = parentNode.dataset.id;
+
+                    if (actionButton.classList.contains('add-child')) {
+                        const title = prompt('Enter a title for the new child section:');
+                        if (title) createSection(title, sectionId);
+                    } else if (actionButton.classList.contains('edit')) {
+                        const currentTitle = parentNode.querySelector('.section-title').textContent;
+                        const currentDescription = parentNode.dataset.description;
+                        const newTitle = prompt('Enter the new title:', currentTitle);
+                        const newDescription = prompt('Enter the new description:', currentDescription);
+                        if (newTitle && newTitle.trim() !== '') {
+                            editSection(sectionId, newTitle, newDescription);
+                        }
+                    } else if (actionButton.classList.contains('delete')) {
+                        deleteSection(sectionId);
+                    }
+                }
+            });
+
+            document.getElementById('expand-all').addEventListener('click', () => {
+                templateTree.querySelectorAll('.tree-children').forEach(c => c.classList.remove('collapsed'));
+                templateTree.querySelectorAll('.toggle').forEach(t => t.innerHTML = '<i class="fas fa-caret-down"></i>');
+            });
+
+            document.getElementById('collapse-all').addEventListener('click', () => {
+                templateTree.querySelectorAll('.tree-children').forEach(c => c.classList.add('collapsed'));
+                templateTree.querySelectorAll('.toggle').forEach(t => t.innerHTML = '<i class="fas fa-caret-right"></i>');
+            });
+
+            function getAntiForgeryToken() {
+                return container.dataset.antiforgeryToken;
+            }
+
+            fetchTemplateData();
+        });
+    </script>
+}
