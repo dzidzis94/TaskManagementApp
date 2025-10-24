@@ -23,11 +23,20 @@ namespace TaskManagementApp.Services.Interfaces
         Task<Project> GetProjectByIdAsync(int id);
 
         /// <summary>
-        /// Creates a new project, optionally applying a template to generate tasks.
+        /// Creates a new empty project.
         /// </summary>
         /// <param name="project">The project to create.</param>
-        /// <param name="templateId">The optional ID of the template to apply.</param>
-        Task CreateProjectAsync(Project project, int? templateId);
+        /// <returns>The created project.</returns>
+        Task<Project> CreateProjectAsync(Project project);
+
+        /// <summary>
+        /// Creates a new project from a template, including all its hierarchical tasks.
+        /// </summary>
+        /// <param name="templateId">The ID of the project template.</param>
+        /// <param name="projectName">The name for the new project.</param>
+        /// <param name="projectDescription">The description for the new project.</param>
+        /// <returns>The newly created project.</returns>
+        Task<Project> CreateProjectFromTemplateAsync(int templateId, string projectName, string projectDescription);
 
         /// <summary>
         /// Updates an existing project.

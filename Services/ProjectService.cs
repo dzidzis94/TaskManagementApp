@@ -35,7 +35,7 @@ namespace TaskManagementApp.Services
                 .FirstOrDefaultAsync(m => m.Id == id);
         }
 
-        public async Task CreateProjectAsync(Project project, int? templateId)
+        public async Task<Project> CreateProjectAsync(Project project)
         {
             if (project == null)
             {
@@ -44,34 +44,78 @@ namespace TaskManagementApp.Services
 
             _context.Add(project);
             await _context.SaveChangesAsync();
-
-            if (templateId.HasValue)
-            {
-                var template = await _context.ProjectTemplates
-                    .Include(t => t.Sections)
-                    .ThenInclude(s => s.ChildSections) // Eagerly load the entire hierarchy
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(t => t.Id == templateId.Value);
-
-                if (template != null)
-                {
-                    var rootSections = template.Sections.Where(s => s.ParentSectionId == null);
-                    foreach (var section in rootSections)
-                    {
-                        CreateTaskFromSection(section, project, null);
-                    }
-                    await _context.SaveChangesAsync();
-                }
-            }
+            return project;
         }
 
-        private void CreateTaskFromSection(TemplateSection section, Project project, TaskItem parentTask)
+        public async Task<Project> CreateProjectFromTemplateAsync(int templateId, string projectName, string projectDescription)
+        {
+            var template = await _context.ProjectTemplates
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == templateId);
+
+            if (template == null)
+            {
+                throw new ArgumentException("Template not found.", nameof(templateId));
+            }
+
+            var allSections = await _context.TemplateSections
+                .Where(s => s.ProjectTemplateId == templateId)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var sectionsById = allSections.ToDictionary(s => s.Id);
+            foreach (var section in allSections)
+            {
+                section.ChildSections = new List<TemplateSection>(); // Reset child collections
+            }
+            foreach (var section in allSections)
+            {
+                if (section.ParentSectionId.HasValue && sectionsById.TryGetValue(section.ParentSectionId.Value, out var parent))
+                {
+                    parent.ChildSections.Add(section);
+                }
+            }
+            var rootSections = allSections.Where(s => s.ParentSectionId == null);
+
+            var project = new Project
+            {
+                Name = projectName,
+                Description = projectDescription
+            };
+
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    _context.Add(project);
+                    await _context.SaveChangesAsync();
+
+                    foreach (var section in rootSections)
+                    {
+                        await CreateTaskFromSectionAsync(section, project, null);
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Error creating project from template. Transaction rolled back.");
+                    throw;
+                }
+            }
+
+            return project;
+        }
+
+        private async Task CreateTaskFromSectionAsync(TemplateSection section, Project project, TaskItem parentTask)
         {
             var task = new TaskItem
             {
                 Title = section.Title,
                 Description = section.Description,
-                ProjectId = project.Id,
+                Project = project,
                 ParentTask = parentTask,
                 Priority = section.Priority,
                 DueDate = section.DueDateOffsetDays.HasValue
@@ -84,7 +128,7 @@ namespace TaskManagementApp.Services
             {
                 foreach (var childSection in section.ChildSections)
                 {
-                    CreateTaskFromSection(childSection, project, task);
+                    await CreateTaskFromSectionAsync(childSection, project, task);
                 }
             }
         }
