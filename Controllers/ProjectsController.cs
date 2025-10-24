@@ -60,7 +60,14 @@ namespace TaskManagementApp.Controllers
             {
                 try
                 {
-                    await _projectService.CreateProjectAsync(project, templateId);
+                    if (templateId.HasValue)
+                    {
+                        await _projectService.CreateProjectFromTemplateAsync(templateId.Value, project.Name, project.Description);
+                    }
+                    else
+                    {
+                        await _projectService.CreateProjectAsync(project);
+                    }
                     TempData["SuccessMessage"] = "Project created successfully!";
                     return RedirectToAction(nameof(Index));
                 }
