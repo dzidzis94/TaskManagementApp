@@ -8,6 +8,12 @@
 <div class="row">
     <div class="col-md-4">
         <section>
+            <!-- TODO: REMOVE THIS BLOCK BEFORE PRODUCTION DEPLOYMENT. -->
+            <div class="temporary-credentials" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 20px;">
+                <h4>Test Credentials</h4>
+                <p><strong>Admin:</strong><br>Username: <code>test_admin</code><br>Password: <code>password123</code></p>
+                <p><strong>Client:</strong><br>Username: <code>test_client</code><br>Password: <code>password123</code></p>
+            </div>
             <form asp-route-returnUrl="@ViewData["ReturnUrl"]" method="post">
                 <h4>Use a local account to log in.</h4>
                 <hr />
