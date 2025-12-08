@@ -3,9 +3,14 @@
 <div class="task-card glass-card">
     <div class="task-card-header">
         <h5 class="card-title">@Model.Title</h5>
-        <span class="status-badge @GetStatusBadgeClass(Model.Status)">
-            @Model.Status.GetDisplayName()
-        </span>
+        <div>
+            <span class="badge @GetStatusBadgeClass(Model.Status)">
+                @Model.Status.GetDisplayName()
+            </span>
+            <span class="badge @GetPriorityBadgeClass(Model.Priority)">
+                @Model.Priority.ToString()
+            </span>
+        </div>
     </div>
 
     <div class="task-card-body">
@@ -38,10 +43,21 @@
     {
         return status switch
         {
-            TaskManagementApp.Models.TaskStatus.Pending => "pending",
-            TaskManagementApp.Models.TaskStatus.InProgress => "in-progress",
-            TaskManagementApp.Models.TaskStatus.Completed => "completed",
-            TaskManagementApp.Models.TaskStatus.Cancelled => "cancelled",
+            TaskManagementApp.Models.TaskStatus.Pending => "status-pending",
+            TaskManagementApp.Models.TaskStatus.InProgress => "status-in-progress",
+            TaskManagementApp.Models.TaskStatus.Completed => "status-completed",
+            TaskManagementApp.Models.TaskStatus.Cancelled => "status-cancelled",
+            _ => ""
+        };
+    }
+
+    string GetPriorityBadgeClass(TaskManagementApp.Models.TaskPriority priority)
+    {
+        return priority switch
+        {
+            TaskManagementApp.Models.TaskPriority.High => "priority-high",
+            TaskManagementApp.Models.TaskPriority.Medium => "priority-medium",
+            TaskManagementApp.Models.TaskPriority.Low => "priority-low",
             _ => ""
         };
     }
