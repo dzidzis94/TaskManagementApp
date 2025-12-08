@@ -148,7 +148,7 @@ namespace TaskManagementApp.Controllers
                 await _context.SaveChangesAsync();
                 return Ok();
             }
-            catch (DbUpdateException ex)
+            catch (DbUpdateException)
             {
                 // Log the error
                 return StatusCode(500, "A database error occurred while updating the template structure.");
