@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using TaskManagementApp.Models;
 
@@ -11,8 +11,8 @@ namespace TaskManagementApp.Data
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-            // Izveido lomas
-            string[] roleNames = { "Admin", "User" };
+            // Create roles
+            string[] roleNames = { "Admin", "Client", "User" };
 
             foreach (var roleName in roleNames)
             {
@@ -23,43 +23,43 @@ namespace TaskManagementApp.Data
                 }
             }
 
-            // Izveido administratoru
-            var adminUser = await userManager.FindByEmailAsync("admin@taskapp.com");
+            // Create test_admin user
+            var adminUser = await userManager.FindByNameAsync("test_admin");
             if (adminUser == null)
             {
                 adminUser = new ApplicationUser
                 {
-                    UserName = "admin@taskapp.com",
-                    Email = "admin@taskapp.com",
-                    FirstName = "Sistēmas",
-                    LastName = "Administrators",
+                    UserName = "test_admin",
+                    Email = "test_admin@example.com",
+                    FirstName = "Test",
+                    LastName = "Admin",
                     EmailConfirmed = true
                 };
 
-                var createPowerUser = await userManager.CreateAsync(adminUser, "Admin123!");
-                if (createPowerUser.Succeeded)
+                var createAdminUser = await userManager.CreateAsync(adminUser, "password123");
+                if (createAdminUser.Succeeded)
                 {
                     await userManager.AddToRoleAsync(adminUser, "Admin");
                 }
             }
 
-            // Izveido parasto lietotāju
-            var normalUser = await userManager.FindByEmailAsync("user@taskapp.com");
-            if (normalUser == null)
+            // Create test_client user
+            var clientUser = await userManager.FindByNameAsync("test_client");
+            if (clientUser == null)
             {
-                normalUser = new ApplicationUser
+                clientUser = new ApplicationUser
                 {
-                    UserName = "user@taskapp.com",
-                    Email = "user@taskapp.com",
-                    FirstName = "Parasts",
-                    LastName = "Lietotājs",
+                    UserName = "test_client",
+                    Email = "test_client@example.com",
+                    FirstName = "Test",
+                    LastName = "Client",
                     EmailConfirmed = true
                 };
 
-                var createUser = await userManager.CreateAsync(normalUser, "User123!");
-                if (createUser.Succeeded)
+                var createClientUser = await userManager.CreateAsync(clientUser, "password123");
+                if (createClientUser.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(normalUser, "User");
+                    await userManager.AddToRoleAsync(clientUser, "Client");
                 }
             }
         }
