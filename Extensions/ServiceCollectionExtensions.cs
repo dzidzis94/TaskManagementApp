@@ -47,7 +47,7 @@ namespace TaskManagementApp.Extensions
             // Register application services
             services.AddScoped<IProjectService, ProjectService>();
             services.AddScoped<ITaskService, TaskService>();
-            // services.AddScoped<ITemplateService, TemplateService>();
+            services.AddScoped<ITemplateService, TemplateService>();
 
             // Add logging
             services.AddLogging();
