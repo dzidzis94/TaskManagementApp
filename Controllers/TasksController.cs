@@ -175,15 +175,29 @@ namespace TaskManagementApp.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var deletedTask = await _taskService.DeleteTaskAsync(id);
-            if (deletedTask != null) // This means deletion failed because of sub-tasks
+            try
             {
-                TempData["ErrorMessage"] = "Cannot delete a task that has sub-tasks.";
-                return RedirectToAction(nameof(Index), new { projectId = deletedTask.ProjectId });
+                var success = await _taskService.DeleteTaskAsync(id);
+                if (success)
+                {
+                    TempData["SuccessMessage"] = "Task deleted successfully.";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Task not found or could not be deleted.";
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                TempData["ErrorMessage"] = ex.Message;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting task {TaskId}", id);
+                TempData["ErrorMessage"] = "An unexpected error occurred while deleting the task.";
             }
 
-            TempData["SuccessMessage"] = "Task deleted successfully.";
-            // Since we don't know the project ID after deletion, redirect to general tasks
+            // Redirect to the general tasks view as we don't have a specific project context.
             return RedirectToAction(nameof(Index));
         }
 
