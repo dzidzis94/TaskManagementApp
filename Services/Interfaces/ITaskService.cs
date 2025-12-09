@@ -15,7 +15,7 @@ namespace TaskManagementApp.Services.Interfaces
         /// </summary>
         /// <param name="projectId">The optional ID of the project to filter by.</param>
         /// <returns>A collection of root-level task items with their sub-tasks populated.</returns>
-        Task<IEnumerable<TaskItem>> GetTasksAsync(int? projectId);
+        Task<IEnumerable<TaskSummaryViewModel>> GetTasksAsync(int? projectId);
 
         /// <summary>
         /// Retrieves a single task by its ID, with its full hierarchy.
@@ -42,7 +42,7 @@ namespace TaskManagementApp.Services.Interfaces
         /// </summary>
         /// <param name="id">The ID of the task to delete.</param>
         /// <returns>The deleted task item, or null if not found or if it has sub-tasks.</returns>
-        Task<TaskItem> DeleteTaskAsync(int id);
+        Task<bool> DeleteTaskAsync(int id);
 
         /// <summary>
         /// Marks a task as completed for the specified user.

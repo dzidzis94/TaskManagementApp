@@ -1,12 +1,10 @@
-@model TaskManagementApp.Models.TaskItem
+@model TaskManagementApp.ViewModels.TaskSummaryViewModel
 @using Microsoft.AspNetCore.Identity
 @inject UserManager<ApplicationUser> UserManager
 
 @{
-    var assignedUsers = Model.TaskAssignments?.Select(ta => ta.User?.UserName ?? "Unassigned").ToList();
-    var completedUsers = Model.TaskCompletions?.Select(tc => tc.User?.UserName ?? "N/A").ToList();
     var currentUserId = UserManager.GetUserId(User);
-    var canComplete = Model.TaskAssignments.Any(ta => ta.UserId == currentUserId) && !Model.TaskCompletions.Any(tc => tc.UserId == currentUserId);
+    var canComplete = Model.AssignedUserIds.Contains(currentUserId) && !Model.CompletedUserIds.Contains(currentUserId);
 }
 
 <div class="card bg-dark-glass mb-3 task-card" id="task-card-@Model.Id">
@@ -36,10 +34,10 @@
         <p class="card-text mt-2 text-white-70">@Model.Description</p>
 
         <div class="mt-2">
-            <small class="text-white-50">Assigned to: @(assignedUsers != null && assignedUsers.Any() ? string.Join(", ", assignedUsers) : "None")</small><br>
-            @if(completedUsers != null && completedUsers.Any())
+            <small class="text-white-50">Assigned to: @(Model.AssignedUserNames.Any() ? string.Join(", ", Model.AssignedUserNames) : "None")</small><br>
+            @if(Model.CompletedUserNames.Any())
             {
-                <small class="text-white-50">Completed by: @string.Join(", ", completedUsers)</small><br>
+                <small class="text-white-50">Completed by: @string.Join(", ", Model.CompletedUserNames)</small><br>
             }
         </div>
 
