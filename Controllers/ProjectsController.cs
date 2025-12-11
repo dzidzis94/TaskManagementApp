@@ -5,6 +5,8 @@ using System;
 using System.Threading.Tasks;
 using TaskManagementApp.Models;
 using TaskManagementApp.Services.Interfaces;
+using TaskManagementApp.ViewModels;
+using TaskManagementApp.Helpers;
 
 namespace TaskManagementApp.Controllers
 {
@@ -12,11 +14,13 @@ namespace TaskManagementApp.Controllers
     public class ProjectsController : Controller
     {
         private readonly IProjectService _projectService;
+        private readonly ITemplateService _templateService;
         private readonly ILogger<ProjectsController> _logger;
 
-        public ProjectsController(IProjectService projectService, ILogger<ProjectsController> logger)
+        public ProjectsController(IProjectService projectService, ITemplateService templateService, ILogger<ProjectsController> logger)
         {
             _projectService = projectService;
+            _templateService = templateService;
             _logger = logger;
         }
 
@@ -173,6 +177,74 @@ namespace TaskManagementApp.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
+        // GET: Projects/Clone/5
+        public async Task<IActionResult> Clone(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var project = await _projectService.GetProjectByIdAsync(id.Value);
+            if (project == null)
+            {
+                return NotFound();
+            }
+
+            var viewModel = new CloneProjectViewModel
+            {
+                SourceProjectId = project.Id,
+                SourceProjectName = project.Name,
+                Name = $"Clone of {project.Name}",
+                Description = project.Description,
+                Tasks = HierarchyHelper.BuildTaskHierarchy(project.Tasks)
+            };
+
+            return View(viewModel);
+        }
+
+        // POST: Projects/Clone/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Clone(int id, [FromForm] CloneProjectViewModel viewModel, [FromForm] System.Collections.Generic.List<int> excludedTaskIds)
+        {
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var newProject = new Project
+                    {
+                        Name = viewModel.Name,
+                        Description = viewModel.Description,
+                        IsPublic = false // Or handle this as needed
+                    };
+
+                    await _projectService.CreateProjectAsync(newProject);
+                    await _templateService.CloneProjectAsync(id, newProject.Id, excludedTaskIds);
+
+                    TempData["SuccessMessage"] = "Project cloned successfully!";
+                    return RedirectToAction(nameof(Details), new { id = newProject.Id });
+                }
+                catch (System.Exception ex)
+                {
+                    _logger.LogError(ex, "Error cloning project.");
+                    ModelState.AddModelError("", "An unexpected error occurred while cloning the project.");
+                }
+            }
+
+            // If model state is invalid, re-populate the necessary data for the view
+            var sourceProject = await _projectService.GetProjectByIdAsync(id);
+            if (sourceProject == null)
+            {
+                return NotFound();
+            }
+            viewModel.SourceProjectName = sourceProject.Name;
+            viewModel.Tasks = HierarchyHelper.BuildTaskHierarchy(sourceProject.Tasks);
+
+            return View(viewModel);
+        }
+
 
         // GET: Projects/GetTemplatePreview/5
         [HttpGet]
