@@ -213,12 +213,15 @@ namespace TaskManagementApp.Controllers
             {
                 try
                 {
-                    var newProject = await _templateService.CloneProjectAsync(
-                        sourceProjectId: id,
-                        newProjectName: viewModel.Name,
-                        newProjectDescription: viewModel.Description,
-                        excludedTaskIds: excludedTaskIds
-                    );
+                    var newProject = new Project
+                    {
+                        Name = viewModel.Name,
+                        Description = viewModel.Description,
+                        IsPublic = false // Or handle this as needed
+                    };
+
+                    await _projectService.CreateProjectAsync(newProject);
+                    await _templateService.CloneProjectAsync(id, newProject.Id, excludedTaskIds);
 
                     TempData["SuccessMessage"] = "Project cloned successfully!";
                     return RedirectToAction(nameof(Details), new { id = newProject.Id });
