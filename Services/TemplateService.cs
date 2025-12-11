@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using TaskManagementApp.Data;
 using TaskManagementApp.Models;
 using TaskManagementApp.Services.Interfaces;
+using TaskManagementApp.Helpers;
 
 namespace TaskManagementApp.Services
 {
@@ -90,6 +91,83 @@ namespace TaskManagementApp.Services
                 {
                     var childTask = CreateTaskFromSectionRecursive(childSection, project, task);
                     task.SubTasks.Add(childTask);
+                }
+            }
+
+            return task;
+        }
+
+        public async Task<Project> CloneProjectAsync(int sourceProjectId, string newProjectName, string? newProjectDescription, List<int>? excludedTaskIds = null)
+        {
+            var sourceProject = await _context.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == sourceProjectId);
+            if (sourceProject == null) throw new ArgumentException("Source project not found.");
+
+            var targetProject = new Project
+            {
+                Name = newProjectName,
+                Description = newProjectDescription,
+                IsPublic = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Projects.Add(targetProject);
+            await _context.SaveChangesAsync();
+
+            // Efficiently fetch all tasks for the source project in a single query
+            var allTasks = await _context.Tasks
+                .Where(t => t.ProjectId == sourceProjectId)
+                .AsNoTracking()
+                .ToListAsync();
+
+            // Build the hierarchy in memory
+            var rootTasks = HierarchyHelper.BuildTaskHierarchy(allTasks);
+
+            var excludedTaskIdsSet = excludedTaskIds != null ? new HashSet<int>(excludedTaskIds) : new HashSet<int>();
+            var tasksToAdd = new List<TaskItem>();
+            foreach (var task in rootTasks)
+            {
+                var newTask = CreateTaskFromTaskRecursive(task, targetProject, null, excludedTaskIdsSet);
+                if (newTask != null)
+                {
+                    tasksToAdd.Add(newTask);
+                }
+            }
+
+            _context.Tasks.AddRange(tasksToAdd);
+            await _context.SaveChangesAsync();
+
+            return targetProject;
+        }
+
+        private TaskItem? CreateTaskFromTaskRecursive(TaskItem sourceTask, Project project, TaskItem? parentTask, HashSet<int> excludedTaskIds)
+        {
+            if (excludedTaskIds.Contains(sourceTask.Id))
+            {
+                return null; // Skip this task and its entire subtree
+            }
+
+            var task = new TaskItem
+            {
+                Title = sourceTask.Title,
+                Description = sourceTask.Description,
+                Priority = sourceTask.Priority,
+                Status = TaskManagementApp.Models.TaskStatus.Pending, // Reset status to Pending
+                DueDate = sourceTask.DueDate,
+                Project = project,
+                ParentTask = parentTask,
+                SubTasks = new List<TaskItem>(),
+                TaskAssignments = new List<TaskAssignment>() // Do not copy assignees
+            };
+
+            if (sourceTask.SubTasks != null)
+            {
+                foreach (var childSourceTask in sourceTask.SubTasks)
+                {
+                    var childTask = CreateTaskFromTaskRecursive(childSourceTask, project, task, excludedTaskIds);
+                    if (childTask != null)
+                    {
+                        task.SubTasks.Add(childTask);
+                    }
                 }
             }
 
