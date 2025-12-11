@@ -97,7 +97,7 @@ namespace TaskManagementApp.Services
             return task;
         }
 
-        public async Task<Project> CloneProjectAsync(int sourceProjectId, int targetProjectId, List<int>? excludedTaskIds = null)
+        public async Task<Project> CloneProjectAsync(int sourceProjectId, string newProjectName, string newProjectDescription, List<int>? excludedTaskIds = null)
         {
             var sourceProject = await _context.Projects
                 .AsNoTracking()
@@ -108,13 +108,16 @@ namespace TaskManagementApp.Services
                 throw new ArgumentException("Source project not found.");
             }
 
-            var targetProject = await _context.Projects
-                .FirstOrDefaultAsync(p => p.Id == targetProjectId);
-
-            if (targetProject == null)
+            // Create and save the new project first to get a valid ID
+            var targetProject = new Project
             {
-                throw new ArgumentException("Target project not found.");
-            }
+                Name = newProjectName,
+                Description = newProjectDescription,
+                IsPublic = sourceProject.IsPublic, // Inherit public status
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Projects.Add(targetProject);
+            await _context.SaveChangesAsync(); // This generates the targetProject.Id
 
             // Efficiently fetch all tasks for the source project in a single query
             var allTasks = await _context.Tasks
