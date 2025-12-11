@@ -154,7 +154,7 @@ namespace TaskManagementApp.Services
                 Title = sourceTask.Title,
                 Description = sourceTask.Description,
                 Priority = sourceTask.Priority,
-                Status = TaskStatus.Pending, // Reset status to Pending
+                Status = TaskManagementApp.Models.TaskStatus.Pending, // Reset status to Pending
                 DueDate = sourceTask.DueDate,
                 Project = project,
                 ParentTask = parentTask,
