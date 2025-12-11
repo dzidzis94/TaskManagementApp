@@ -1,0 +1,15 @@
+@model TaskManagementApp.Models.TaskItem
+
+<li>
+    <input type="checkbox" name="excludedTaskIds" value="@Model.Id" id="task-@Model.Id" />
+    <label for="task-@Model.Id">@Model.Title</label>
+    @if (Model.SubTasks != null && Model.SubTasks.Any())
+    {
+        <ul>
+            @foreach (var subTask in Model.SubTasks)
+            {
+                <partial name="_CloneTaskTree" model="subTask" />
+            }
+        </ul>
+    }
+</li>
