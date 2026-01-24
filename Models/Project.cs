@@ -34,6 +34,12 @@ namespace TaskManagementApp.Models
         public bool IsPublic { get; set; } = true;
 
         /// <summary>
+        /// The date and time when the project was created.
+        /// </summary>
+        [Display(Name = "Created Date")]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
         /// The collection of tasks associated with this project.
         /// </summary>
         public virtual ICollection<TaskItem> Tasks { get; set; } = new List<TaskItem>();
