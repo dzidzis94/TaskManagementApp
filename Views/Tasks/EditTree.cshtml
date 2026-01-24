@@ -1,110 +1,76 @@
-@model TaskManagementApp.Models.TaskItem
-@using Microsoft.AspNetCore.Identity
-@inject UserManager<ApplicationUser> UserManager
+@model TaskManagementApp.ViewModels.TaskTreeEditViewModel
 
 @{
-    ViewData["Title"] = "Edit Task Tree (Draft)";
-    var currentUserId = UserManager.GetUserId(User);
+    ViewData["Title"] = "Edit Task Tree";
 }
 
 <div class="container mt-4">
-    <div class="alert alert-info border-info" role="alert">
-        <i class="fas fa-info-circle me-2"></i> <strong>Draft Mode:</strong> You are viewing a cloned task tree. You can review and modify the structure before finalizing.
+    <h2 class="mb-4">Edit Task Tree: @Model.RootTaskTitle</h2>
+
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i> You can edit titles and descriptions of the entire task tree below. Use the "Delete" button to remove unwanted sub-tasks.
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h1 class="mb-3">@ViewData["Title"]</h1>
-            <h4 class="text-muted">@Model.Title</h4>
-        </div>
-        <div>
-            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-success"><i class="fas fa-check"></i> Done Editing</a>
-            @if (User.IsInRole("Admin"))
+    <form asp-action="EditTree" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="RootTaskId" />
+        <input type="hidden" asp-for="RootTaskTitle" />
+
+        <div class="list-group mb-4">
+            @for (int i = 0; i < Model.Tasks.Count; i++)
             {
-                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary"><i class="fas fa-edit"></i> Edit Root Task</a>
+                var item = Model.Tasks[i];
+                <div class="list-group-item task-row" id="task-row-@i" style="margin-left: @(item.Depth * 20)px;">
+                    <div class="row align-items-center">
+                        <!-- Hidden inputs for binding -->
+                        <input type="hidden" name="Tasks.Index" value="@i" />
+                        <input type="hidden" name="Tasks[@i].Id" value="@item.Id" />
+                        <input type="hidden" name="Tasks[@i].ParentTaskId" value="@item.ParentTaskId" />
+                        <input type="hidden" name="Tasks[@i].Depth" value="@item.Depth" />
+
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">Title</label>
+                            <input type="text" name="Tasks[@i].Title" value="@item.Title" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted">Description</label>
+                            <textarea name="Tasks[@i].Description" class="form-control" rows="1">@item.Description</textarea>
+                        </div>
+
+                        <div class="col-md-2 text-end">
+                            @if (item.Id == Model.RootTaskId)
+                            {
+                                <span class="badge bg-primary">Root</span>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeTask(@i)">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
             }
         </div>
-    </div>
-    <hr style="border-color: var(--border-color);" />
 
-    <div class="row">
-        <!-- Main Task Details -->
-        <div class="col-lg-12">
-            <div class="task-item @("task-priority-" + Model.Priority) mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="card-title mb-0" style="color: var(--primary-color);">Description</h5>
-                    <span class="status-badge status-pending">@Model.Status</span>
-                </div>
-
-                <p class="card-text" style="color: var(--text-color);">@Model.Description</p>
-                <hr style="border-color: var(--border-color);" />
-
-                <div class="row text-muted small">
-                    <div class="col-md-4">
-                        <div class="mb-2">
-                            <strong style="color: var(--text-color);">Due Date:</strong> <br>
-                            <i class="fas fa-calendar-alt me-2"></i> @(Model.DueDate?.ToString("yyyy-MM-dd") ?? "Not set")
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                         <div class="mb-2">
-                             <strong style="color: var(--text-color);">Priority:</strong> <br>
-                             <span class="badge @(Model.Priority == TaskManagementApp.Models.TaskPriority.High ? "bg-danger" : Model.Priority == TaskManagementApp.Models.TaskPriority.Medium ? "bg-warning text-dark" : "bg-info text-dark")">@Model.Priority</span>
-                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-2">
-                            <strong style="color: var(--text-color);">Created by:</strong> <br>
-                            <i class="fas fa-user-edit me-2"></i> @Model.CreatedBy?.UserName
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Subtasks -->
-            <div class="task-item">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                     <h5 class="card-title mb-0" style="color: var(--primary-color);">Task Hierarchy</h5>
-                     @if (User.IsInRole("Admin"))
-                     {
-                        <a asp-action="Create" asp-route-parentTaskId="@Model.Id" asp-route-projectId="@Model.ProjectId" class="btn btn-sm btn-success"><i class="fas fa-plus"></i> Add Sub-task</a>
-                     }
-                </div>
-
-                @if (Model.SubTasks != null && Model.SubTasks.Any())
-                {
-                    <div class="sub-tasks">
-                         @await Html.PartialAsync("_TaskList", Model.SubTasks.Select(MapToSummary))
-                    </div>
-                }
-                else
-                {
-                    <p style="color: var(--text-muted);">No sub-tasks.</p>
-                }
-            </div>
+        <div class="d-flex justify-content-between">
+            <a asp-action="Details" asp-route-id="@Model.RootTaskId" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-success"><i class="fas fa-save me-2"></i> Save Changes</button>
         </div>
-    </div>
+    </form>
 </div>
 
-@functions {
-    TaskManagementApp.ViewModels.TaskSummaryViewModel MapToSummary(TaskManagementApp.Models.TaskItem task)
-    {
-        return new TaskManagementApp.ViewModels.TaskSummaryViewModel
-        {
-            Id = task.Id,
-            Title = task.Title,
-            Description = task.Description,
-            Status = task.Status,
-            Priority = task.Priority,
-            DueDate = task.DueDate,
-            ProjectId = task.ProjectId,
-            ParentTaskId = task.ParentTaskId,
-            CreatedAt = task.CreatedAt,
-            AssignedUserNames = task.TaskAssignments?.Where(ta => ta.User != null).Select(ta => ta.User.UserName).ToList() ?? new List<string>(),
-            AssignedUserIds = task.TaskAssignments?.Select(ta => ta.UserId).ToList() ?? new List<string>(),
-            CompletedUserNames = task.TaskCompletions?.Where(tc => tc.User != null).Select(tc => tc.User.UserName).ToList() ?? new List<string>(),
-            CompletedUserIds = task.TaskCompletions?.Select(tc => tc.UserId).ToList() ?? new List<string>(),
-            SubTasks = task.SubTasks?.Select(MapToSummary).ToList() ?? new List<TaskManagementApp.ViewModels.TaskSummaryViewModel>()
-        };
-    }
+@section Scripts {
+    <script>
+        function removeTask(index) {
+            if (confirm('Are you sure you want to delete this task? It will be removed when you save.')) {
+                var row = document.getElementById('task-row-' + index);
+                if (row) {
+                    row.remove();
+                }
+            }
+        }
+    </script>
 }

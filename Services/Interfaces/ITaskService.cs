@@ -77,6 +77,19 @@ namespace TaskManagementApp.Services.Interfaces
         /// <param name="newParentId">Optional new parent task ID for the cloned task.</param>
         /// <returns>The ID of the newly created task.</returns>
         Task<int> CloneTaskAsync(int sourceTaskId, int? targetProjectId, string userId, int? newParentId = null);
+
+        /// <summary>
+        /// Retrieves the task tree for editing.
+        /// </summary>
+        /// <param name="rootTaskId">The ID of the root task.</param>
+        /// <returns>A view model containing the flattened task tree.</returns>
+        Task<TaskTreeEditViewModel?> GetTaskTreeForEditAsync(int rootTaskId);
+
+        /// <summary>
+        /// Updates the task tree based on the provided model.
+        /// </summary>
+        /// <param name="model">The view model containing the updated task tree.</param>
+        Task UpdateTaskTreeAsync(TaskTreeEditViewModel model);
     }
 
     public class TaskCompletionResult

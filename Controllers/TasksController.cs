@@ -75,13 +75,37 @@ namespace TaskManagementApp.Controllers
                 return NotFound();
             }
 
-            var task = await _taskService.GetTaskByIdAsync(id.Value);
-            if (task == null)
+            var model = await _taskService.GetTaskTreeForEditAsync(id.Value);
+            if (model == null)
             {
                 return NotFound();
             }
 
-            return View(task);
+            return View(model);
+        }
+
+        // POST: Tasks/EditTree
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditTree(TaskTreeEditViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            try
+            {
+                await _taskService.UpdateTaskTreeAsync(model);
+                TempData["SuccessMessage"] = "Task tree updated successfully!";
+                return RedirectToAction(nameof(Details), new { id = model.RootTaskId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating task tree {RootTaskId}", model.RootTaskId);
+                ModelState.AddModelError("", "An unexpected error occurred while updating the task tree.");
+                return View(model);
+            }
         }
 
         // GET: Tasks/Create
