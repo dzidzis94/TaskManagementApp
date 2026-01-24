@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using TaskManagementApp.Models;
-using TaskStatus = TaskManagementApp.Models.TaskStatus;
+
+using ModelTaskStatus = TaskManagementApp.Models.TaskStatus;
 
 namespace TaskManagementApp.ViewModels
 {
@@ -10,7 +11,7 @@ namespace TaskManagementApp.ViewModels
         public int Id { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
-        public TaskStatus Status { get; set; }
+        public ModelTaskStatus Status { get; set; }
         public DateTime? DueDate { get; set; }
         public int? ProjectId { get; set; }
         public int? ParentTaskId { get; set; }
