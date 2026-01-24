@@ -17,8 +17,8 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
-            <div class="container-fluid">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-custom border-bottom box-shadow sticky-top">
+            <div class="container">
                 <a class="navbar-brand" asp-area="" asp-controller="Tasks" asp-action="Index">
                     <i class="fas fa-tasks"></i> TaskFlow
                 </a>
@@ -52,7 +52,7 @@
             </div>
         </nav>
     </header>
-    <div class="container-fluid">
+    <div class="container mt-4">
         <main role="main" class="pb-3">
             @if (TempData["SuccessMessage"] != null)
             {
@@ -71,7 +71,7 @@
     </div>
 
     <footer class="border-top footer text-muted">
-        <div class="container-fluid">
+        <div class="container">
             &copy; 2024 - TaskFlow
         </div>
     </footer>
