@@ -48,9 +48,9 @@ namespace TaskManagementApp.Services
                     ProjectId = t.ProjectId,
                     ParentTaskId = t.ParentTaskId,
                     CreatedAt = t.CreatedAt,
-                    AssignedUserNames = t.TaskAssignments.Select(ta => ta.User?.UserName).Where(s => s != null).ToList()!,
+                    AssignedUserNames = t.TaskAssignments.Where(ta => ta.User != null).Select(ta => ta.User.UserName).ToList()!,
                     AssignedUserIds = t.TaskAssignments.Select(ta => ta.UserId).ToList(),
-                    CompletedUserNames = t.TaskCompletions.Select(tc => tc.User?.UserName).Where(s => s != null).ToList()!,
+                    CompletedUserNames = t.TaskCompletions.Where(tc => tc.User != null).Select(tc => tc.User.UserName).ToList()!,
                     CompletedUserIds = t.TaskCompletions.Select(tc => tc.UserId).ToList()
                 })
                 .ToListAsync();
