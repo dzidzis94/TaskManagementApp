@@ -7,9 +7,10 @@
     --info-color: #17a2b8;
     --light-color: #f8f9fa;
     --dark-color: #343a40;
-    --background-color: #ffffff;
+    --background-color: #f8f9fa;
     --surface-color: #ffffff;
     --text-color: #212529;
+    --text-muted: #6c757d;
     --border-color: #dee2e6;
     --primary-hover-color: #0056b3;
 }
@@ -25,9 +26,17 @@
     --dark-color: #343a40;
     --background-color: #121212;
     --surface-color: #1e1e1e;
-    --text-color: #ffffff;
+    --text-color: #e8eaed;
+    --text-muted: #9aa0a6;
     --border-color: #444444;
     --primary-hover-color: #0056b3;
+}
+
+/* Global Styles */
+body {
+    font-family: 'Inter', 'Segoe UI', Roboto, Arial, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
 }
 
 /* Custom CSS for Task Management App */
@@ -56,6 +65,7 @@
 
 .task-meta {
     margin-top: 0.5rem;
+    color: var(--text-muted);
 }
 
 .status-badge {
