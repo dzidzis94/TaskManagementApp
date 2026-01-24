@@ -44,6 +44,7 @@ namespace TaskManagementApp.Services
                     Title = t.Title,
                     Description = t.Description,
                     Status = t.Status,
+                    Priority = t.Priority,
                     DueDate = t.DueDate,
                     ProjectId = t.ProjectId,
                     ParentTaskId = t.ParentTaskId,

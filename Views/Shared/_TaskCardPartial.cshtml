@@ -7,51 +7,63 @@
     var canComplete = Model.AssignedUserIds.Contains(currentUserId) && !Model.CompletedUserIds.Contains(currentUserId);
 }
 
-<div class="card bg-dark-glass mb-3 task-card" id="task-card-@Model.Id">
-    <div class="card-body">
-        <div class="d-flex justify-content-between">
-            <div>
-                <h5 class="card-title mb-1">
-                    <a asp-controller="Tasks" asp-action="Details" asp-route-id="@Model.Id" class="text-white">
-                        @Model.Title
-                    </a>
-                </h5>
-                <small class="text-white-50">
-                    Due: @(Model.DueDate?.ToString("yyyy-MM-dd") ?? "Not set") | Status: <span class="badge bg-primary">@Model.Status</span>
-                </small>
+<div class="task-item @("task-priority-" + Model.Priority) mb-3" id="task-card-@Model.Id">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="card-title mb-0">
+            <a asp-controller="Tasks" asp-action="Details" asp-route-id="@Model.Id" style="color: var(--text-color); font-weight: 600; text-decoration: none;">
+                @Model.Title
+            </a>
+        </h5>
+        <div>
+             <span class="status-badge @(Model.Status == TaskManagementApp.Models.TaskStatus.Completed ? "status-completed" : Model.Status == TaskManagementApp.Models.TaskStatus.InProgress ? "status-in-progress" : "status-pending")">
+                @Model.Status
+            </span>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        @if (!string.IsNullOrEmpty(Model.Description))
+        {
+            <p class="card-text" style="color: var(--text-muted);">@Model.Description</p>
+        }
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div class="small" style="color: var(--text-muted);">
+            <div class="mb-1">
+                <i class="fas fa-calendar-alt me-2"></i>
+                <span>Due: @(Model.DueDate?.ToString("MMM dd, yyyy") ?? "No due date")</span>
             </div>
-            <div class="task-actions">
-                @if (User.IsInRole("Admin"))
-                {
-                    <a asp-controller="Tasks" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-light me-1"><i class="fas fa-edit"></i></a>
-                    <a asp-controller="Tasks" asp-action="Create" asp-route-parentTaskId="@Model.Id" asp-route-projectId="@Model.ProjectId" class="btn btn-sm btn-outline-success me-1"><i class="fas fa-plus"></i> Subtask</a>
-                    <form asp-controller="Tasks" asp-action="DeleteConfirmed" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure?');">
-                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
-                    </form>
-                }
+             <div class="mb-1">
+                <i class="fas fa-user me-2"></i>
+                <span>Assigned: @(Model.AssignedUserNames.Any() ? string.Join(", ", Model.AssignedUserNames) : "Unassigned")</span>
             </div>
         </div>
-        <p class="card-text mt-2 text-white-70">@Model.Description</p>
 
-        <div class="mt-2">
-            <small class="text-white-50">Assigned to: @(Model.AssignedUserNames.Any() ? string.Join(", ", Model.AssignedUserNames) : "None")</small><br>
-            @if(Model.CompletedUserNames.Any())
+        <div class="task-actions mt-2 mt-sm-0">
+            @if (canComplete)
             {
-                <small class="text-white-50">Completed by: @string.Join(", ", Model.CompletedUserNames)</small><br>
+                <form asp-controller="Tasks" asp-action="MarkAsCompleted" asp-route-id="@Model.Id" method="post" class="d-inline me-1">
+                    <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i> Complete</button>
+                </form>
+            }
+
+            <a asp-controller="Tasks" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-sm btn-secondary me-1"><i class="fas fa-eye"></i></a>
+
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-controller="Tasks" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-primary me-1"><i class="fas fa-edit"></i></a>
+                <a asp-controller="Tasks" asp-action="Create" asp-route-parentTaskId="@Model.Id" asp-route-projectId="@Model.ProjectId" class="btn btn-sm btn-success me-1"><i class="fas fa-plus"></i></a>
+                <form asp-controller="Tasks" asp-action="DeleteConfirmed" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure?');">
+                    <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                </form>
             }
         </div>
-
-        @if (canComplete)
-        {
-            <form asp-controller="Tasks" asp-action="MarkAsCompleted" asp-route-id="@Model.Id" method="post" class="mt-2">
-                <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i> Mark as Complete</button>
-            </form>
-        }
     </div>
 
     @if (Model.SubTasks != null && Model.SubTasks.Any())
     {
-        <div class="card-footer" style="border-top: 1px solid rgba(255, 255, 255, 0.1);">
+        <div class="sub-tasks">
              @await Html.PartialAsync("_TaskList", Model.SubTasks)
         </div>
     }
