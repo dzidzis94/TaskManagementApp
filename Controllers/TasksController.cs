@@ -67,6 +67,23 @@ namespace TaskManagementApp.Controllers
             return View(task);
         }
 
+        // GET: Tasks/EditTree/5
+        public async Task<IActionResult> EditTree(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var task = await _taskService.GetTaskByIdAsync(id.Value);
+            if (task == null)
+            {
+                return NotFound();
+            }
+
+            return View(task);
+        }
+
         // GET: Tasks/Create
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create(int? projectId, int? parentTaskId)
@@ -178,8 +195,8 @@ namespace TaskManagementApp.Controllers
             {
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 var newTaskId = await _taskService.CloneTaskAsync(id, null, userId);
-                TempData["SuccessMessage"] = "Task cloned successfully!";
-                return RedirectToAction(nameof(Details), new { id = newTaskId });
+                TempData["SuccessMessage"] = "Task cloned successfully! You can now edit the task structure.";
+                return RedirectToAction(nameof(EditTree), new { id = newTaskId });
             }
             catch (ArgumentException)
             {
