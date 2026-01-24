@@ -169,6 +169,30 @@ namespace TaskManagementApp.Controllers
             }
         }
 
+        // POST: Tasks/Clone/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Clone(int id)
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var newTaskId = await _taskService.CloneTaskAsync(id, null, userId);
+                TempData["SuccessMessage"] = "Task cloned successfully!";
+                return RedirectToAction(nameof(Details), new { id = newTaskId });
+            }
+            catch (ArgumentException)
+            {
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cloning task {TaskId}", id);
+                TempData["ErrorMessage"] = "An error occurred while cloning the task.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
         // POST: Tasks/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]

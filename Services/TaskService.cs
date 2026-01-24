@@ -309,5 +309,54 @@ namespace TaskManagementApp.Services
                 SelectedUserIds = task.TaskAssignments.Select(ta => ta.UserId).ToList()
             };
         }
+
+        public async Task<int> CloneTaskAsync(int sourceTaskId, int? targetProjectId, string userId, int? newParentId = null)
+        {
+            var sourceTaskRoot = await GetTaskByIdAsync(sourceTaskId);
+            if (sourceTaskRoot == null) throw new ArgumentException("Task not found");
+
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    var newTaskId = await CloneTaskRecursiveAsync(sourceTaskRoot, targetProjectId, userId, newParentId);
+                    await transaction.CommitAsync();
+                    return newTaskId;
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
+        }
+
+        private async Task<int> CloneTaskRecursiveAsync(TaskItem sourceTask, int? targetProjectId, string userId, int? newParentId)
+        {
+            var newTask = new TaskItem
+            {
+                Title = sourceTask.Title,
+                Description = sourceTask.Description,
+                Priority = sourceTask.Priority,
+                ProjectId = targetProjectId ?? sourceTask.ProjectId,
+                ParentTaskId = newParentId,
+                CreatedById = userId,
+                CreatedAt = DateTime.UtcNow,
+                Status = Models.TaskStatus.Pending,
+            };
+
+            _context.Tasks.Add(newTask);
+            await _context.SaveChangesAsync();
+
+            if (sourceTask.SubTasks != null)
+            {
+                foreach (var subTask in sourceTask.SubTasks)
+                {
+                    await CloneTaskRecursiveAsync(subTask, targetProjectId, userId, newTask.Id);
+                }
+            }
+
+            return newTask.Id;
+        }
     }
 }
