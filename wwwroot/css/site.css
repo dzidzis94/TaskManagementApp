@@ -1,111 +1,133 @@
+﻿/* --- 1. KRĀSU MAINĪGIE UN AUTOMĀTISKAIS REŽĪMS --- */
 :root {
-    --primary-color: #007bff;
-    --secondary-color: #6c757d;
-    --success-color: #28a745;
-    --danger-color: #dc3545;
-    --warning-color: #ffc107;
-    --info-color: #17a2b8;
-    --light-color: #f8f9fa;
-    --dark-color: #343a40;
-    --background-color: #f8f9fa;
+    --primary-color: #4f46e5;
+    --primary-hover-color: #4338ca;
+    --secondary-color: #64748b;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --info-color: #06b6d4;
+    --background-color: #f8fafc;
     --surface-color: #ffffff;
-    --text-color: #212529;
-    --text-muted: #6c757d;
-    --border-color: #dee2e6;
-    --primary-hover-color: #0056b3;
+    --text-color: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
 }
 
-[data-theme='dark'] {
-    --primary-color: #007bff;
-    --secondary-color: #6c757d;
-    --success-color: #28a745;
-    --danger-color: #dc3545;
-    --warning-color: #ffc107;
-    --info-color: #17a2b8;
-    --light-color: #f8f9fa;
-    --dark-color: #343a40;
-    --background-color: #121212;
-    --surface-color: #1e1e1e;
-    --text-color: #e8eaed;
-    --text-muted: #9aa0a6;
-    --border-color: #444444;
-    --primary-hover-color: #0056b3;
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background-color: #0f172a;
+        --surface-color: #1e293b;
+        --text-color: #f1f5f9;
+        --text-muted: #94a3b8; /* Pelēks, bet pietiekami gaišs */
+        --border-color: #334155;
+        --primary-color: #818cf8;
+    }
+
+    /* Uzlabojam progresa joslas fonu tumšajā režīmā */
+    .progress {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
 }
 
-/* Global Styles */
+/* --- 2. GLOBĀLIE STILI --- */
 body {
-    font-family: 'Inter', 'Segoe UI', Roboto, Arial, sans-serif;
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
     background-color: var(--background-color);
     color: var(--text-color);
+    line-height: 1.6;
+    margin: 0;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Custom CSS for Task Management App */
-
-.task-tree {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
+/* --- 3. UZDEVUMU SARAKSTA DIZAINS --- */
 .task-item {
-    border-left: 4px solid var(--secondary-color);
-    transition: all 0.3s ease;
+    background-color: var(--surface-color);
     border: 1px solid var(--border-color);
+    border-left: 5px solid var(--secondary-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
     .task-item:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        transform: translateY(-2px);
-        border-color: var(--accent-color);
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.2);
+        transform: translateY(-3px);
+        border-color: var(--primary-color);
     }
 
-.sub-tasks {
-    border-left: 3px solid var(--border-color);
-    padding-left: 1.5rem;
-    margin-left: 1rem;
+.task-priority-High {
+    border-left-color: var(--danger-color);
 }
 
-.task-meta {
-    margin-top: 0.5rem;
-    color: var(--text-muted);
+.task-priority-Medium {
+    border-left-color: var(--warning-color);
 }
 
+.task-priority-Low {
+    border-left-color: var(--info-color);
+}
+
+/* --- 4. STATUSI UN NOZĪMĪTES --- */
 .status-badge {
     font-size: 0.75rem;
-    padding: 0.35rem 0.65rem;
+    padding: 0.35rem 0.75rem;
+    font-weight: 600;
+    border-radius: 50rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.status-completed {
+    color: #10b981;
+    background-color: rgba(16, 185, 129, 0.15);
+}
+
+.status-in-progress {
+    color: #06b6d4;
+    background-color: rgba(6, 182, 212, 0.15);
+}
+
+/* --- 5. NAVIGĀCIJA --- */
+.navbar-custom .nav-link {
+    color: var(--text-color) !important;
+    opacity: 0.8;
     font-weight: 500;
+    transition: opacity 0.2s;
 }
 
-.task-actions {
-    min-width: 120px;
-    text-align: right;
+    .navbar-custom .nav-link:hover {
+        opacity: 1;
+        color: var(--primary-color) !important;
+    }
+/* --- JAUNS: Virsrakstu kontrasts --- */
+h4.text-muted {
+    color: var(--text-color) !important; /* Piespiežam virsrakstus būt gaišus */
+    opacity: 0.9;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+/* --- 6. POGAS --- */
+.btn {
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 0.6rem 1.2rem;
+    transition: all 0.2s ease;
 }
 
-.btn-group .btn {
-    border-radius: 0.375rem;
+.btn-primary {
+    background-color: var(--primary-color);
+    color: #ffffff !important;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-    .task-actions {
-        text-align: left;
-        margin-top: 1rem;
+    .btn-primary:hover {
+        background-color: var(--primary-hover-color);
+        transform: scale(1.02);
     }
 
-    .sub-tasks {
-        margin-left: 0.5rem;
-        padding-left: 1rem;
-    }
-
-    .task-meta small {
-        display: block;
-        margin-bottom: 0.25rem;
-    }
-
-        .task-meta small.ms-3 {
-            margin-left: 0 !important;
-        }
-}
-
-/* Animation for task items */
+/* --- 7. ANIMĀCIJAS --- */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -119,128 +141,5 @@ body {
 }
 
 .task-item {
-    animation: fadeIn 0.3s ease-out;
-}
-
-/* Basic responsiveness for login page on smaller screens */
-@media (max-width: 600px) {
-    .row {
-        margin-left: 0;
-        margin-right: 0;
-    }
-
-    .col-md-4 {
-        width: 100%;
-        max-width: 100%;
-        flex: 100%;
-        padding: 1rem;
-    }
-
-    h2 {
-        font-size: 1.75rem;
-    }
-}
-
-/* Dashboard responsiveness */
-@media (max-width: 600px) {
-    .display-4 {
-        font-size: 2.5rem;
-    }
-
-    .col-lg-6 {
-        width: 100%;
-        max-width: 100%;
-        flex: 100%;
-    }
-}
-
-/* Semantic Badge Styles */
-
-/* Status Badges */
-.status-completed {
-    color: #0f5132;
-    background-color: #d1e7dd;
-}
-
-.status-in-progress {
-    color: #055160;
-    background-color: #cff4fc;
-}
-
-.status-pending {
-    color: #664d03;
-    background-color: #fff3cd;
-}
-
-.status-cancelled {
-    color: #41464b;
-    background-color: #e2e3e5;
-}
-
-/* Priority Badges */
-.priority-high {
-    color: #842029;
-    background-color: #f8d7da;
-}
-
-.priority-medium {
-    color: #41464b;
-    background-color: #e2e3e5;
-}
-
-.priority-low {
-    color: #0a367e;
-    background-color: #cfe2ff;
-}
-
-/* Button Styles */
-.btn {
-    transition: all 0.2s ease-in-out;
-    border-radius: 0.375rem;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.btn-primary {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    color: var(--light-color);
-}
-
-.btn-primary:hover {
-    background-color: var(--primary-hover-color);
-    border-color: var(--primary-hover-color);
-    color: var(--light-color);
-}
-
-.btn-secondary {
-    background-color: var(--secondary-color);
-    border-color: var(--secondary-color);
-    color: var(--light-color);
-}
-
-.btn-success {
-    background-color: var(--success-color);
-    border-color: var(--success-color);
-    color: var(--light-color);
-}
-
-/* Navbar Customization */
-.navbar-custom {
-    background-color: var(--surface-color);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.navbar-custom .navbar-brand,
-.navbar-custom .nav-link {
-    color: var(--text-color);
-}
-
-.navbar-custom .navbar-toggler-icon {
-    background-color: var(--text-color);
-    -webkit-mask: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(0, 0, 0, 1)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") no-repeat center;
-    mask: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(0, 0, 0, 1)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") no-repeat center;
+    animation: fadeIn 0.4s ease-out;
 }

@@ -4226,23 +4226,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\User\\.nuget\\packages\\": {},
+    "C:\\Users\\dzidz\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\User\\OneDrive\\Dators\\DarbuUzskaite\\TaskManagementApp\\TaskManagementApp.csproj",
+      "projectUniqueName": "C:\\Users\\dzidz\\Desktop\\TaskManagementApp\\TaskManagementApp.csproj",
       "projectName": "TaskManagementApp",
-      "projectPath": "C:\\Users\\User\\OneDrive\\Dators\\DarbuUzskaite\\TaskManagementApp\\TaskManagementApp.csproj",
-      "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\User\\OneDrive\\Dators\\DarbuUzskaite\\TaskManagementApp\\obj\\",
+      "projectPath": "C:\\Users\\dzidz\\Desktop\\TaskManagementApp\\TaskManagementApp.csproj",
+      "packagesPath": "C:\\Users\\dzidz\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\dzidz\\Desktop\\TaskManagementApp\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\User\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\dzidz\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],

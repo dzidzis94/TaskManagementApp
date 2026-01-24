@@ -1,27 +1,32 @@
-@model TaskManagementApp.ViewModels.DashboardViewModel
+﻿@model TaskManagementApp.ViewModels.DashboardViewModel
 
 @{
     ViewData["Title"] = "Dashboard";
 }
 
 <div class="container mt-4">
-    <h1 class="text-white mb-4">@ViewData["Title"]</h1>
+    <h1 class="mb-4">@ViewData["Title"]</h1>
 
-    <!-- User's Personal Stats -->
     <div class="row">
         <div class="col-md-12">
-            <h4 class="text-white-70 mb-3">My Progress</h4>
-            <div class="card bg-dark-glass">
+            @* Nomainīta klase no text-muted uz vienkāršu h4 ar akcentu *@
+            <h4 class="mb-3 text-uppercase small fw-bold" style="color: var(--primary-color); letter-spacing: 1px;">
+                My Progress
+            </h4>
+            <div class="task-item">
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-md-4">
-                            <h5 class="text-white">Completion Rate</h5>
-                            <p class="display-4 text-white">@Model.CompletionPercentage.ToString("F1")%</p>
-                            <p class="text-white-50">@Model.CompletedTasks of @Model.TotalTasks tasks completed</p>
+                            @* Šeit izmantojam text-color, lai ir maksimāls kontrasts *@
+                            <h5 class="small text-uppercase fw-bold" style="color: var(--text-muted);">Completion Rate</h5>
+                            <p class="display-4 fw-bold" style="color: var(--text-color);">@Model.CompletionPercentage.ToString("F1")%</p>
+                            <p style="color: var(--text-muted); font-weight: 500;">@Model.CompletedTasks of @Model.TotalTasks tasks completed</p>
                         </div>
                         <div class="col-md-8">
-                            <div class="progress" style="height: 25px;">
-                                <div class="progress-bar bg-success" role="progressbar" style="width: @Model.CompletionPercentage.ToString("F1")%;" aria-valuenow="@Model.CompletionPercentage" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="progress" style="height: 12px; border-radius: 10px; background-color: var(--border-color); overflow: visible;">
+                                <div class="progress-bar" role="progressbar"
+                                     style="width: @Model.CompletionPercentage.ToString("F1")%; background-color: var(--success-color); border-radius: 10px;"
+                                     aria-valuenow="@Model.CompletionPercentage" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
                     </div>
@@ -31,48 +36,53 @@
     </div>
 
     <div class="row mt-4">
-        <!-- My Outstanding Tasks -->
         <div class="col-lg-6 mb-4">
-            <h4 class="text-white-70 mb-3">My Outstanding Tasks</h4>
-            <div class="card bg-dark-glass">
+            <h4 class="text-muted mb-3">My Outstanding Tasks</h4>
+            <div class="task-item p-0">
                 <div class="list-group list-group-flush">
                     @if (Model.MyTasks.Any())
                     {
-                        @foreach (var task in Model.MyTasks)
+                        foreach (var task in Model.MyTasks)
                         {
-                            <a asp-controller="Tasks" asp-action="Details" asp-route-id="@task.Id" class="list-group-item list-group-item-action bg-transparent text-white d-flex justify-content-between align-items-center">
-                                <span>@task.Title</span>
-                                <span class="badge bg-primary rounded-pill">Due: @(task.DueDate?.ToString("MMM dd") ?? "N/A")</span>
-                            </a>
+                    <a asp-controller="Tasks" asp-action="Details" asp-route-id="@task.Id"
+                       class="list-group-item list-group-item-action bg-transparent d-flex justify-content-between align-items-center py-3"
+                       style="color: var(--text-color); border-bottom: 1px solid var(--border-color);">
+                        <span><i class="fas fa-circle-notch text-primary me-2"></i>@task.Title</span>
+                        <span class="status-badge status-in-progress">Due: @(task.DueDate?.ToString("MMM dd") ?? "N/A")</span>
+                    </a>
                         }
                     }
                     else
                     {
-                        <div class="list-group-item bg-transparent text-white-50">You have no outstanding tasks. Great job!</div>
+                    <div class="p-4 text-center text-muted">You have no outstanding tasks. Great job!</div>
                     }
                 </div>
             </div>
         </div>
 
-        <!-- Global Activity Feed -->
         <div class="col-lg-6 mb-4">
-            <h4 class="text-white-70 mb-3">Recent Activity</h4>
-            <div class="card bg-dark-glass">
-                 <div class="list-group list-group-flush">
+            <h4 class="text-muted mb-3">Recent Activity</h4>
+            <div class="task-item p-0">
+                <div class="list-group list-group-flush">
                     @if (Model.RecentActivity.Any())
                     {
-                        @foreach (var activity in Model.RecentActivity)
+                        foreach (var activity in Model.RecentActivity)
                         {
-                            <div class="list-group-item bg-transparent text-white-70 border-bottom border-secondary">
-                                <i class="fas @(activity.ActivityType == "New Task" ? "fa-plus-circle text-success" : "fa-check-circle text-info") me-2"></i>
-                                <strong>@activity.UserFullName</strong> @activity.Message
-                                <div class="text-white-50 small mt-1">@activity.Timestamp.ToString("g")</div>
+                    <div class="list-group-item bg-transparent py-3" style="border-bottom: 1px solid var(--border-color);">
+                        <div class="d-flex align-items-start">
+                            <i class="fas @(activity.ActivityType == "New Task" ? "fa-plus-circle text-success" : "fa-check-circle text-info") mt-1 me-3"></i>
+                            <div>
+                                <div class="fw-bold" style="color: var(--text-color);">@activity.UserFullName</div>
+                                <div style="color: var(--text-color); opacity: 0.9;">@activity.Message</div>
+                                <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 2px;">@activity.Timestamp.ToString("g")</div>
                             </div>
+                        </div>
+                    </div>
                         }
                     }
                     else
                     {
-                        <div class="list-group-item bg-transparent text-white-50">No recent activity.</div>
+                    <div class="p-4 text-center text-muted">No recent activity.</div>
                     }
                 </div>
             </div>

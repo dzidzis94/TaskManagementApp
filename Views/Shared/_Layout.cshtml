@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - TaskFlow</title>
 
-    <!-- Bootstrap 5 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
 
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="~/lib/fontawesome-free/css/all.min.css" />
 
-    <!-- Custom Theme -->
-    <link rel="stylesheet" href="~/css/themes/dark-theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-custom border-bottom box-shadow sticky-top">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-custom sticky-top">
             <div class="container">
                 <a class="navbar-brand" asp-area="" asp-controller="Tasks" asp-action="Index">
-                    <i class="fas fa-tasks"></i> TaskFlow
+                    <i class="fas fa-tasks me-2"></i>TaskFlow
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
@@ -36,15 +36,15 @@
                         </li>
                         @if (User.IsInRole("Admin"))
                         {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Projects" asp-action="Index">Projects</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="ProjectTemplates" asp-action="Index">Templates</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="UserManagement" asp-action="Index">Users</a>
-                            </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Projects" asp-action="Index">Projects</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="ProjectTemplates" asp-action="Index">Templates</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="UserManagement" asp-action="Index">Users</a>
+                        </li>
                         }
                     </ul>
                     <partial name="_LoginPartial" />
@@ -52,27 +52,41 @@
             </div>
         </nav>
     </header>
+
     <div class="container mt-4">
-        <main role="main" class="pb-3">
-            @if (TempData["SuccessMessage"] != null)
-            {
-                <div class="alert alert-success" role="alert">@TempData["SuccessMessage"]</div>
-            }
-            @if (TempData["ErrorMessage"] != null)
-            {
-                <div class="alert alert-danger" role="alert">@TempData["ErrorMessage"]</div>
-            }
-            @if (TempData["InfoMessage"] != null)
-            {
-                <div class="alert alert-info" role="alert">@TempData["InfoMessage"]</div>
-            }
+        <main role="main" class="pb-5">
+            @* Paziņojumu sistēma *@
+            <div class="notifications-container">
+                @if (TempData["SuccessMessage"] != null)
+                {
+                <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                }
+                @if (TempData["ErrorMessage"] != null)
+                {
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                }
+                @if (TempData["InfoMessage"] != null)
+                {
+                <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="fas fa-info-circle me-2"></i> @TempData["InfoMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                }
+            </div>
+
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2024 - TaskFlow
+    <footer class="footer py-3 text-muted">
+        <div class="container text-center">
+            <span class="small">&copy; @DateTime.Now.Year - TaskFlow • Built with passion</span>
         </div>
     </footer>
 
