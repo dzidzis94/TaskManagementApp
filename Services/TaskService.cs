@@ -312,7 +312,7 @@ namespace TaskManagementApp.Services
 
         public async Task<int> CloneTaskAsync(int sourceTaskId, int? targetProjectId, string userId, int? newParentId = null)
         {
-            var sourceTaskRoot = await GetTaskByIdAsync(sourceTaskId);
+            var sourceTaskRoot = await GetTaskTreeAsNoTrackingAsync(sourceTaskId);
             if (sourceTaskRoot == null) throw new ArgumentException("Task not found");
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -331,6 +331,33 @@ namespace TaskManagementApp.Services
             }
         }
 
+        private async Task<TaskItem?> GetTaskTreeAsNoTrackingAsync(int id)
+        {
+            var task = await _context.Tasks
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (task == null) return null;
+
+            // Build the full hierarchy for the task using AsNoTracking to avoid tracking conflicts
+            var allTasksInContext = await _context.Tasks
+                .AsNoTracking()
+                .Where(t => t.ProjectId == task.ProjectId)
+                .ToListAsync();
+
+            var taskDictionary = allTasksInContext.ToDictionary(t => t.Id);
+
+            foreach (var subTask in allTasksInContext)
+            {
+                if (subTask.ParentTaskId.HasValue && taskDictionary.TryGetValue(subTask.ParentTaskId.Value, out var parent))
+                {
+                    parent.SubTasks.Add(subTask);
+                }
+            }
+
+            return taskDictionary[task.Id];
+        }
+
         private async Task<int> CloneTaskRecursiveAsync(TaskItem sourceTask, int? targetProjectId, string userId, int? newParentId)
         {
             var newTask = new TaskItem
@@ -343,6 +370,8 @@ namespace TaskManagementApp.Services
                 CreatedById = userId,
                 CreatedAt = DateTime.UtcNow,
                 Status = Models.TaskStatus.Pending,
+                TaskAssignments = new List<TaskAssignment>(),
+                TaskCompletions = new List<TaskCompletion>()
             };
 
             _context.Tasks.Add(newTask);
