@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using TaskManagementApp.Models;
+using TaskStatus = TaskManagementApp.Models.TaskStatus;
 
 namespace TaskManagementApp.ViewModels
 {
