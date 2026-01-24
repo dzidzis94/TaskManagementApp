@@ -22,7 +22,7 @@ namespace TaskManagementApp.Services.Interfaces
         /// </summary>
         /// <param name="id">The ID of the task to retrieve.</param>
         /// <returns>The task with the specified ID, or null if not found.</returns>
-        Task<TaskItem> GetTaskByIdAsync(int id);
+        Task<TaskItem?> GetTaskByIdAsync(int id);
 
         /// <summary>
         /// Creates a new task based on the provided view model.
@@ -66,7 +66,7 @@ namespace TaskManagementApp.Services.Interfaces
         /// </summary>
         /// <param name="id">The ID of the task to edit.</param>
         /// <returns>A view model for editing a task, or null if the task is not found.</returns>
-        Task<EditTaskViewModel> GetEditTaskViewModelAsync(int id);
+        Task<EditTaskViewModel?> GetEditTaskViewModelAsync(int id);
     }
 
     public class TaskCompletionResult
