@@ -76,7 +76,32 @@ namespace TaskManagementApp.Services
                 task.SubTasks = task.SubTasks.OrderByDescending(st => st.CreatedAt).ToList();
             }
 
+            // Calculate CompletionPercentage for root tasks
+            foreach (var rootTask in rootTasks)
+            {
+                var (completed, total) = CalculateTaskCompletion(rootTask);
+                rootTask.CompletionPercentage = total > 0 ? (double)completed / total * 100 : 0;
+            }
+
             return rootTasks.OrderByDescending(t => t.CreatedAt).ToList();
+        }
+
+        private (int completed, int total) CalculateTaskCompletion(TaskSummaryViewModel task)
+        {
+            int completed = task.Status == Models.TaskStatus.Completed ? 1 : 0;
+            int total = 1;
+
+            if (task.SubTasks != null)
+            {
+                foreach (var subTask in task.SubTasks)
+                {
+                    var (subCompleted, subTotal) = CalculateTaskCompletion(subTask);
+                    completed += subCompleted;
+                    total += subTotal;
+                }
+            }
+
+            return (completed, total);
         }
 
         public async Task<TaskItem?> GetTaskByIdAsync(int id)
@@ -360,6 +385,7 @@ namespace TaskManagementApp.Services
 
         private async Task<int> CloneTaskRecursiveAsync(TaskItem sourceTask, int? targetProjectId, string userId, int? newParentId)
         {
+            // Create a new object to ensure no tracking conflicts and Id is 0
             var newTask = new TaskItem
             {
                 Title = sourceTask.Title,
@@ -386,6 +412,126 @@ namespace TaskManagementApp.Services
             }
 
             return newTask.Id;
+        }
+
+        public async Task<TaskTreeEditViewModel?> GetTaskTreeForEditAsync(int rootTaskId)
+        {
+            var rootTask = await GetTaskByIdAsync(rootTaskId);
+            if (rootTask == null) return null;
+
+            var model = new TaskTreeEditViewModel
+            {
+                RootTaskId = rootTask.Id,
+                RootTaskTitle = rootTask.Title,
+                Tasks = new List<TaskEditItem>()
+            };
+
+            FlattenTaskTree(rootTask, model.Tasks, 0);
+
+            return model;
+        }
+
+        private void FlattenTaskTree(TaskItem task, List<TaskEditItem> flatList, int depth)
+        {
+            flatList.Add(new TaskEditItem
+            {
+                Id = task.Id,
+                Title = task.Title,
+                Description = task.Description,
+                ParentTaskId = task.ParentTaskId,
+                Depth = depth,
+                IsDeleted = false
+            });
+
+            if (task.SubTasks != null)
+            {
+                foreach (var subTask in task.SubTasks)
+                {
+                    FlattenTaskTree(subTask, flatList, depth + 1);
+                }
+            }
+        }
+
+        public async Task UpdateTaskTreeAsync(TaskTreeEditViewModel model)
+        {
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    // Fetch the root task with full hierarchy (tracked)
+                    var rootTask = await GetTaskByIdAsync(model.RootTaskId);
+                    if (rootTask == null) throw new KeyNotFoundException("Root task not found.");
+
+                    // Flatten existing tree to map by ID
+                    var existingTasks = new Dictionary<int, TaskItem>();
+                    FlattenTaskTreeToDictionary(rootTask, existingTasks);
+
+                    var submittedTaskIds = model.Tasks.Select(t => t.Id).ToHashSet();
+
+                    // Delete tasks that are in DB but missing from submission.
+                    var tasksToDelete = existingTasks.Values
+                        .Where(t => !submittedTaskIds.Contains(t.Id) && t.Id != model.RootTaskId)
+                        .ToList();
+
+                    // Also identify orphans in the submission (tasks whose parents are being deleted)
+                    var idsToDelete = tasksToDelete.Select(t => t.Id).ToHashSet();
+                    bool added;
+                    do
+                    {
+                        added = false;
+                        foreach (var item in model.Tasks)
+                        {
+                            if (!idsToDelete.Contains(item.Id) && item.ParentTaskId.HasValue && idsToDelete.Contains(item.ParentTaskId.Value))
+                            {
+                                idsToDelete.Add(item.Id);
+                                if (existingTasks.TryGetValue(item.Id, out var existingTask))
+                                {
+                                    tasksToDelete.Add(existingTask);
+                                }
+                                added = true;
+                            }
+                        }
+                    } while (added);
+
+                    if (tasksToDelete.Any())
+                    {
+                        _context.Tasks.RemoveRange(tasksToDelete);
+                    }
+
+                    // Update existing tasks (skip those marked for deletion)
+                    foreach (var item in model.Tasks)
+                    {
+                        if (idsToDelete.Contains(item.Id)) continue;
+
+                        if (existingTasks.TryGetValue(item.Id, out var existingTask))
+                        {
+                            existingTask.Title = item.Title;
+                            existingTask.Description = item.Description;
+                            _context.Entry(existingTask).State = EntityState.Modified;
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
+        }
+
+        private void FlattenTaskTreeToDictionary(TaskItem task, Dictionary<int, TaskItem> dictionary)
+        {
+            dictionary[task.Id] = task;
+            if (task.SubTasks != null)
+            {
+                foreach (var subTask in task.SubTasks)
+                {
+                    FlattenTaskTreeToDictionary(subTask, dictionary);
+                }
+            }
         }
     }
 }

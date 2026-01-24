@@ -21,6 +21,7 @@ namespace TaskManagementApp.ViewModels
         public List<string> AssignedUserIds { get; set; } = new List<string>();
         public List<string> CompletedUserNames { get; set; } = new List<string>();
         public List<string> CompletedUserIds { get; set; } = new List<string>();
+        public double CompletionPercentage { get; set; }
         public List<TaskSummaryViewModel> SubTasks { get; set; } = new List<TaskSummaryViewModel>();
     }
 }
