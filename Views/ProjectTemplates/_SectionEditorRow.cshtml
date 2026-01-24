@@ -1,14 +1,14 @@
 @model TaskManagementApp.Models.TemplateSection
 
-<li class="list-group-item" data-id="@Model.Id">
+<li class="list-group-item" data-id="@Model.Id" style="background-color: var(--surface-color); border-color: var(--border-color);">
     <div class="d-flex align-items-center">
-        <i class="fas fa-grip-vertical me-2"></i>
-        <input type="text" class="form-control me-2" value="@Model.Title" placeholder="Section Title" />
+        <i class="fas fa-grip-vertical me-2" style="color: var(--text-muted); cursor: grab;"></i>
+        <input type="text" class="form-control me-2" value="@Model.Title" placeholder="Section Title" style="background-color: var(--background-color); color: var(--text-color); border-color: var(--border-color);" />
         <button class="btn btn-sm btn-outline-primary me-2">Save</button>
         <button class="btn btn-sm btn-outline-danger">Delete</button>
     </div>
     <div class="mt-2">
-        <textarea class="form-control" rows="2" placeholder="Section Description">@Model.Description</textarea>
+        <textarea class="form-control" rows="2" placeholder="Section Description" style="background-color: var(--background-color); color: var(--text-color); border-color: var(--border-color);">@Model.Description</textarea>
     </div>
     <ul class="list-group mt-2" style="margin-left: 20px;">
         @foreach (var child in Model.ChildSections)

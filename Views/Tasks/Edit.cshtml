@@ -5,51 +5,49 @@
 }
 
 <div class="container mt-4">
-    <h1 class="text-white">@ViewData["Title"]</h1>
-    <hr class="border-light" />
+    <h1 class="mb-3">@ViewData["Title"]</h1>
+    <hr style="border-color: var(--border-color);" />
 
-    <div class="card bg-dark-glass">
+    <div class="task-item">
         <div class="card-body">
             <form asp-action="Edit">
                 <input type="hidden" asp-for="Id" />
                 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
                 <div class="mb-3">
-                    <label asp-for="Title" class="form-label text-white"></label>
-                    <input asp-for="Title" class="form-control bg-dark-glass text-white" />
+                    <label asp-for="Title" class="form-label" style="color: var(--text-color);"></label>
+                    <input asp-for="Title" class="form-control" style="background-color: var(--background-color); color: var(--text-color); border-color: var(--border-color);" />
                     <span asp-validation-for="Title" class="text-danger"></span>
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="Description" class="form-label text-white"></label>
-                    <textarea asp-for="Description" class="form-control bg-dark-glass text-white" rows="3"></textarea>
+                    <label asp-for="Description" class="form-label" style="color: var(--text-color);"></label>
+                    <textarea asp-for="Description" class="form-control" rows="3" style="background-color: var(--background-color); color: var(--text-color); border-color: var(--border-color);"></textarea>
                     <span asp-validation-for="Description" class="text-danger"></span>
                 </div>
 
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label asp-for="DueDate" class="form-label text-white"></label>
-                        <input asp-for="DueDate" type="date" class="form-control bg-dark-glass text-white" />
+                        <label asp-for="DueDate" class="form-label" style="color: var(--text-color);"></label>
+                        <input asp-for="DueDate" type="date" class="form-control" style="background-color: var(--background-color); color: var(--text-color); border-color: var(--border-color);" />
                         <span asp-validation-for="DueDate" class="text-danger"></span>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label asp-for="Status" class="form-label text-white"></label>
-                        <select asp-for="Status" class="form-select bg-dark-glass text-white" asp-items="Html.GetEnumSelectList<TaskManagementApp.Models.TaskStatus>()"></select>
+                        <label asp-for="Status" class="form-label" style="color: var(--text-color);"></label>
+                        <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<TaskManagementApp.Models.TaskStatus>()" style="background-color: var(--background-color); color: var(--text-color); border-color: var(--border-color);"></select>
                         <span asp-validation-for="Status" class="text-danger"></span>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label asp-for="ProjectId" class="form-label text-white"></label>
-                        <select asp-for="ProjectId" class="form-select bg-dark-glass text-white" asp-items="@(new SelectList(ViewBag.Projects, "Id", "Name"))">
-                            <option value="">-- No Project --</option>
-                        </select>
+                        <label asp-for="ProjectId" class="form-label" style="color: var(--text-color);"></label>
+                        <select asp-for="ProjectId" class="form-select" asp-items="@(new SelectList(ViewBag.Projects, "Id", "Name"))" style="background-color: var(--background-color); color: var(--text-color); border-color: var(--border-color);"></select>
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="SelectedUserIds" class="form-label text-white">Assigned Users</label>
-                    <select asp-for="SelectedUserIds" class="form-control bg-dark-glass text-white" multiple="multiple" style="height: 150px;" asp-items="@(new SelectList(ViewBag.Users, "Id", "UserName"))">
+                    <label asp-for="SelectedUserIds" class="form-label" style="color: var(--text-color);">Assigned Users</label>
+                    <select asp-for="SelectedUserIds" class="form-control" multiple="multiple" style="height: 150px; background-color: var(--background-color); color: var(--text-color); border-color: var(--border-color);" asp-items="@(new SelectList(ViewBag.Users, "Id", "UserName"))">
                     </select>
-                    <small class="form-text text-white-50">Hold down CTRL (or Command on Mac) to select multiple users.</small>
+                    <small class="form-text" style="color: var(--text-muted);">Hold down CTRL (or Command on Mac) to select multiple users.</small>
                 </div>
 
                 <div class="d-flex justify-content-end">

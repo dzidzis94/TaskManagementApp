@@ -4,47 +4,43 @@
     ViewData["Title"] = "Project Template Details";
 }
 
-<h1>@Model.Name</h1>
+<div class="container mt-4">
+    <h1 class="mb-3">@Model.Name</h1>
 
-<div>
-    <h4>Project Template Details</h4>
-    <hr />
-    <dl class="row">
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
-    </dl>
-</div>
+    <div class="task-item mb-4">
+        <div class="card-body">
+            <h4 class="mb-3" style="color: var(--primary-color);">Project Template Details</h4>
+            <hr style="border-color: var(--border-color);" />
+            <dl class="row">
+                <dt class="col-sm-2" style="color: var(--text-color);">
+                    @Html.DisplayNameFor(model => model.Name)
+                </dt>
+                <dd class="col-sm-10" style="color: var(--text-muted);">
+                    @Html.DisplayFor(model => model.Name)
+                </dd>
+                <dt class="col-sm-2" style="color: var(--text-color);">
+                    @Html.DisplayNameFor(model => model.Description)
+                </dt>
+                <dd class="col-sm-10" style="color: var(--text-muted);">
+                    @Html.DisplayFor(model => model.Description)
+                </dd>
+            </dl>
+        </div>
+    </div>
 
-<hr />
+    <h3 class="mb-3" style="color: var(--text-color);">Sections</h3>
 
-<h3>Sections</h3>
+    <div class="task-item p-0">
+        <div class="list-group list-group-flush">
+            @foreach (var section in Model.Sections.Where(s => s.ParentSectionId == null))
+            {
+                @await Html.PartialAsync("_SectionRowReadOnly", section)
+            }
+        </div>
+    </div>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Title</th>
-            <th>Description</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var section in Model.Sections.Where(s => s.ParentSectionId == null))
-        {
-            @await Html.PartialAsync("_SectionRowReadOnly", section)
-        }
-    </tbody>
-</table>
-
-<div>
-    <a asp-action="Edit" asp-route-id="@Model.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+    <div class="mt-3">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    </div>
 </div>
