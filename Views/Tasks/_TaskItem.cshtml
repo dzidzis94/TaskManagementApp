@@ -1,10 +1,10 @@
 @model TaskManagementApp.Models.TaskItem
 
-<div class="task-card glass-card">
-    <div class="task-card-header">
-        <h5 class="card-title">@Model.Title</h5>
+<div class="task-item">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="card-title mb-0" style="color: var(--primary-color);">@Model.Title</h5>
         <div>
-            <span class="badge @GetStatusBadgeClass(Model.Status)">
+            <span class="status-badge @GetStatusBadgeClass(Model.Status)">
                 @Model.Status.GetDisplayName()
             </span>
             <span class="badge @GetPriorityBadgeClass(Model.Priority)">
@@ -13,27 +13,27 @@
         </div>
     </div>
 
-    <div class="task-card-body">
+    <div class="mb-3">
         @if (!string.IsNullOrEmpty(Model.Description))
         {
-            <p class="card-text text-muted">@Model.Description</p>
+            <p class="card-text" style="color: var(--text-color);">@Model.Description</p>
         }
     </div>
 
-    <div class="task-card-footer">
-        <div class="task-meta">
-            <div class="task-meta-item">
-                <i class="fas fa-user"></i>
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="small" style="color: var(--text-muted);">
+            <div class="mb-1">
+                <i class="fas fa-user me-2"></i>
                 <span>@(Model.TaskAssignments.FirstOrDefault()?.User?.FirstName ?? "Unassigned")</span>
             </div>
-            <div class="task-meta-item mt-2">
-                <i class="fas fa-calendar"></i>
+            <div>
+                <i class="fas fa-calendar me-2"></i>
                 <span>@(Model.DueDate?.ToString("MMM dd, yyyy") ?? "No due date")</span>
             </div>
         </div>
-        <div class="task-actions">
-            <a href="@Url.Action("Edit", "Tasks", new { id = Model.Id })" class="btn btn-sm btn-outline-light"><i class="fas fa-edit"></i></a>
-            <a href="@Url.Action("Details", "Tasks", new { id = Model.Id })" class="btn btn-sm btn-outline-light"><i class="fas fa-eye"></i></a>
+        <div>
+            <a href="@Url.Action("Edit", "Tasks", new { id = Model.Id })" class="btn btn-sm btn-primary me-1"><i class="fas fa-edit"></i></a>
+            <a href="@Url.Action("Details", "Tasks", new { id = Model.Id })" class="btn btn-sm btn-secondary"><i class="fas fa-eye"></i></a>
         </div>
     </div>
 </div>
@@ -55,10 +55,10 @@
     {
         return priority switch
         {
-            TaskManagementApp.Models.TaskPriority.High => "priority-high",
-            TaskManagementApp.Models.TaskPriority.Medium => "priority-medium",
-            TaskManagementApp.Models.TaskPriority.Low => "priority-low",
-            _ => ""
+            TaskManagementApp.Models.TaskPriority.High => "bg-danger",
+            TaskManagementApp.Models.TaskPriority.Medium => "bg-warning text-dark",
+            TaskManagementApp.Models.TaskPriority.Low => "bg-info text-dark",
+            _ => "bg-secondary"
         };
     }
 }

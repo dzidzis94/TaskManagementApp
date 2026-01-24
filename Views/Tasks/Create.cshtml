@@ -6,66 +6,66 @@
 }
 
 <div class="container mt-4">
-    <h1 class="text-white">@ViewData["Title"]</h1>
+    <h1 class="mb-3">@ViewData["Title"]</h1>
     @if (!string.IsNullOrEmpty(parentTaskTitle))
     {
-        <h4 class="text-white-50">As a sub-task for: @parentTaskTitle</h4>
+        <h4 class="mb-3 text-uppercase small fw-bold" style="color: var(--primary-color); letter-spacing: 1px;">As a sub-task for: @parentTaskTitle</h4>
     }
-    <hr class="border-light" />
+    <hr style="border-color: var(--border-color);" />
 
-    <div class="card bg-dark-glass">
+    <div class="task-item">
         <div class="card-body">
             <form asp-action="Create">
                 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                 <input type="hidden" asp-for="ParentTaskId" />
 
                 <div class="mb-3">
-                    <label asp-for="Title" class="form-label text-white"></label>
-                    <input asp-for="Title" class="form-control bg-dark-glass text-white" />
+                    <label asp-for="Title" class="form-label" style="color: var(--text-color);"></label>
+                    <input asp-for="Title" class="form-control" style="background-color: var(--background-color); color: var(--text-color); border-color: var(--border-color);" />
                     <span asp-validation-for="Title" class="text-danger"></span>
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="Description" class="form-label text-white"></label>
-                    <textarea asp-for="Description" class="form-control bg-dark-glass text-white" rows="3"></textarea>
+                    <label asp-for="Description" class="form-label" style="color: var(--text-color);"></label>
+                    <textarea asp-for="Description" class="form-control" rows="3" style="background-color: var(--background-color); color: var(--text-color); border-color: var(--border-color);"></textarea>
                     <span asp-validation-for="Description" class="text-danger"></span>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label asp-for="DueDate" class="form-label text-white"></label>
-                        <input asp-for="DueDate" type="date" class="form-control bg-dark-glass text-white" />
+                        <label asp-for="DueDate" class="form-label" style="color: var(--text-color);"></label>
+                        <input asp-for="DueDate" type="date" class="form-control" style="background-color: var(--background-color); color: var(--text-color); border-color: var(--border-color);" />
                         <span asp-validation-for="DueDate" class="text-danger"></span>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label asp-for="ProjectId" class="form-label text-white"></label>
-                        <select asp-for="ProjectId" class="form-select bg-dark-glass text-white" asp-items="@(new SelectList(ViewBag.Projects, "Id", "Name"))">
+                        <label asp-for="ProjectId" class="form-label" style="color: var(--text-color);"></label>
+                        <select asp-for="ProjectId" class="form-select" asp-items="@(new SelectList(ViewBag.Projects, "Id", "Name"))" style="background-color: var(--background-color); color: var(--text-color); border-color: var(--border-color);">
                             <option value="">-- No Project --</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label text-white">Assign To</label>
+                    <label class="form-label" style="color: var(--text-color);">Assign To</label>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" asp-for="AssignmentType" id="assignSpecific" value="SpecificUsers" checked>
-                        <label class="form-check-label text-white" for="assignSpecific">
+                        <label class="form-check-label" for="assignSpecific" style="color: var(--text-color);">
                             Specific User(s)
                         </label>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" asp-for="AssignmentType" id="assignAll" value="AllUsers">
-                        <label class="form-check-label text-white" for="assignAll">
+                        <label class="form-check-label" for="assignAll" style="color: var(--text-color);">
                             All Users
                         </label>
                     </div>
                 </div>
 
                 <div id="user-selection-container" class="mb-3">
-                    <label asp-for="SelectedUserIds" class="form-label text-white"></label>
-                    <select asp-for="SelectedUserIds" class="form-control bg-dark-glass text-white" multiple="multiple" style="height: 150px;" asp-items="@(new SelectList(ViewBag.Users, "Id", "UserName"))">
+                    <label asp-for="SelectedUserIds" class="form-label" style="color: var(--text-color);"></label>
+                    <select asp-for="SelectedUserIds" class="form-control" multiple="multiple" style="height: 150px; background-color: var(--background-color); color: var(--text-color); border-color: var(--border-color);" asp-items="@(new SelectList(ViewBag.Users, "Id", "UserName"))">
                     </select>
-                    <small class="form-text text-white-50">Hold down CTRL (or Command on Mac) to select multiple users.</small>
+                    <small class="form-text" style="color: var(--text-muted);">Hold down CTRL (or Command on Mac) to select multiple users.</small>
                 </div>
 
                 <div class="d-flex justify-content-end">

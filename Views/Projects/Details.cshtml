@@ -7,8 +7,8 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h1 class="text-white">@Model.Name</h1>
-            <p class="text-white-50">@Model.Description</p>
+            <h1 class="mb-2">@Model.Name</h1>
+            <p style="color: var(--text-muted);">@Model.Description</p>
         </div>
         <div>
             <a asp-controller="Tasks" asp-action="Create" asp-route-projectId="@Model.Id" class="btn btn-success">
@@ -19,9 +19,9 @@
             </a>
         </div>
     </div>
-    <hr class="border-light" />
+    <hr style="border-color: var(--border-color);" />
 
-    <h3 class="text-white mt-4">Tasks in this Project</h3>
+    <h3 class="mb-4" style="color: var(--text-color);">Tasks in this Project</h3>
 
     @if (Model.Tasks != null && Model.Tasks.Any())
     {
@@ -32,9 +32,9 @@
     }
     else
     {
-        <div class="card bg-dark-glass mt-3">
+        <div class="task-item mt-3">
             <div class="card-body text-center">
-                <p class="text-white-50">No tasks have been created for this project yet.</p>
+                <p style="color: var(--text-muted);">No tasks have been created for this project yet.</p>
             </div>
         </div>
     }

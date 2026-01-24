@@ -13,7 +13,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h1 class="text-white">@Model.Title</h1>
+            <h1 class="mb-3">@Model.Title</h1>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb bg-transparent p-0 m-0">
                     @if (Model.ProjectId.HasValue)
@@ -28,7 +28,7 @@
                     {
                         <li class="breadcrumb-item"><a asp-controller="Tasks" asp-action="Details" asp-route-id="@Model.ParentTaskId">...</a></li>
                     }
-                    <li class="breadcrumb-item active text-white" aria-current="page">@Model.Title</li>
+                    <li class="breadcrumb-item active" aria-current="page" style="color: var(--text-color);">@Model.Title</li>
                 </ol>
             </nav>
         </div>
@@ -40,24 +40,24 @@
             }
         </div>
     </div>
-    <hr class="border-light" />
+    <hr style="border-color: var(--border-color);" />
 
     <div class="row">
         <!-- Main Task Details -->
         <div class="col-lg-8">
-            <div class="card bg-dark-glass mb-4">
+            <div class="task-item mb-4">
                 <div class="card-body">
-                    <h5 class="card-title text-white">Description</h5>
-                    <p class="card-text text-white-70">@Model.Description</p>
-                    <hr class="border-secondary" />
+                    <h5 class="card-title mb-3" style="color: var(--primary-color);">Description</h5>
+                    <p class="card-text" style="color: var(--text-color);">@Model.Description</p>
+                    <hr style="border-color: var(--border-color);" />
                     <div class="row">
                         <div class="col-md-6">
-                            <strong class="text-white">Status:</strong> <span class="badge bg-info">@Model.Status</span><br />
-                            <strong class="text-white">Due Date:</strong> <span class="text-white-70">@(Model.DueDate?.ToString("yyyy-MM-dd") ?? "Not set")</span>
+                            <strong style="color: var(--text-color);">Status:</strong> <span class="status-badge @(Model.Status == TaskManagementApp.Models.TaskStatus.Completed ? "status-completed" : Model.Status == TaskManagementApp.Models.TaskStatus.InProgress ? "status-in-progress" : "status-pending")">@Model.Status</span><br />
+                            <strong style="color: var(--text-color);">Due Date:</strong> <span style="color: var(--text-muted);">@(Model.DueDate?.ToString("yyyy-MM-dd") ?? "Not set")</span>
                         </div>
                         <div class="col-md-6">
-                            <strong class="text-white">Created by:</strong> <span class="text-white-70">@Model.CreatedBy?.UserName</span><br />
-                            <strong class="text-white">Created at:</strong> <span class="text-white-70">@Model.CreatedAt.ToString("g")</span>
+                            <strong style="color: var(--text-color);">Created by:</strong> <span style="color: var(--text-muted);">@Model.CreatedBy?.UserName</span><br />
+                            <strong style="color: var(--text-color);">Created at:</strong> <span style="color: var(--text-muted);">@Model.CreatedAt.ToString("g")</span>
                         </div>
                     </div>
                      @if (canComplete)
@@ -70,10 +70,10 @@
             </div>
 
             <!-- Subtasks -->
-            <div class="card bg-dark-glass">
+            <div class="task-item">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                         <h5 class="card-title text-white">Sub-Tasks</h5>
+                         <h5 class="card-title" style="color: var(--primary-color);">Sub-Tasks</h5>
                          @if (User.IsInRole("Admin"))
                          {
                             <a asp-action="Create" asp-route-parentTaskId="@Model.Id" asp-route-projectId="@Model.ProjectId" class="btn btn-sm btn-success"><i class="fas fa-plus"></i> Add Sub-task</a>
@@ -85,7 +85,7 @@
                     }
                     else
                     {
-                        <p class="text-white-50">No sub-tasks yet.</p>
+                        <p style="color: var(--text-muted);">No sub-tasks yet.</p>
                     }
                 </div>
             </div>
@@ -93,39 +93,39 @@
 
         <!-- Side Panel for Assignments and Completions -->
         <div class="col-lg-4">
-            <div class="card bg-dark-glass mb-4">
-                <div class="card-header">Assigned Users</div>
+            <div class="task-item mb-4 p-0">
+                <div class="card-header bg-transparent border-bottom" style="border-color: var(--border-color); color: var(--text-color);">Assigned Users</div>
                 <ul class="list-group list-group-flush">
                     @if (Model.TaskAssignments != null && Model.TaskAssignments.Any())
                     {
                         @foreach (var assignment in Model.TaskAssignments)
                         {
-                            <li class="list-group-item bg-transparent text-white">@assignment.User?.UserName</li>
+                            <li class="list-group-item bg-transparent" style="color: var(--text-color); border-bottom: 1px solid var(--border-color);">@assignment.User?.UserName</li>
                         }
                     }
                     else
                     {
-                        <li class="list-group-item bg-transparent text-white-50">Not assigned to anyone.</li>
+                        <li class="list-group-item bg-transparent" style="color: var(--text-muted);">Not assigned to anyone.</li>
                     }
                 </ul>
             </div>
 
-            <div class="card bg-dark-glass">
-                <div class="card-header">Completion History</div>
+            <div class="task-item p-0">
+                <div class="card-header bg-transparent border-bottom" style="border-color: var(--border-color); color: var(--text-color);">Completion History</div>
                  <ul class="list-group list-group-flush">
                     @if (Model.TaskCompletions != null && Model.TaskCompletions.Any())
                     {
                         @foreach (var completion in Model.TaskCompletions.OrderByDescending(c => c.CompletionDate))
                         {
-                            <li class="list-group-item bg-transparent text-white d-flex justify-content-between">
+                            <li class="list-group-item bg-transparent d-flex justify-content-between" style="color: var(--text-color); border-bottom: 1px solid var(--border-color);">
                                 <span>@completion.User?.UserName</span>
-                                <small class="text-white-50">@completion.CompletionDate.ToString("yyyy-MM-dd HH:mm")</small>
+                                <small style="color: var(--text-muted);">@completion.CompletionDate.ToString("yyyy-MM-dd HH:mm")</small>
                             </li>
                         }
                     }
                     else
                     {
-                        <li class="list-group-item bg-transparent text-white-50">No one has completed this task yet.</li>
+                        <li class="list-group-item bg-transparent" style="color: var(--text-muted);">No one has completed this task yet.</li>
                     }
                 </ul>
             </div>
