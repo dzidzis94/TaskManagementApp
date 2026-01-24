@@ -143,3 +143,11 @@ h4.text-muted {
 .task-item {
     animation: fadeIn 0.4s ease-out;
 }
+
+/* --- 8. SUB-TASKS --- */
+.sub-tasks {
+    border-left: 2px dashed var(--border-color);
+    padding-left: 1.5rem;
+    margin-left: 0.5rem;
+    margin-top: 1rem;
+}
