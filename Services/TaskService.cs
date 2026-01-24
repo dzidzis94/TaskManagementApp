@@ -48,9 +48,9 @@ namespace TaskManagementApp.Services
                     ProjectId = t.ProjectId,
                     ParentTaskId = t.ParentTaskId,
                     CreatedAt = t.CreatedAt,
-                    AssignedUserNames = t.TaskAssignments.Select(ta => ta.User.UserName).Where(s => s != null).ToList(),
+                    AssignedUserNames = t.TaskAssignments.Select(ta => ta.User?.UserName).Where(s => s != null).ToList()!,
                     AssignedUserIds = t.TaskAssignments.Select(ta => ta.UserId).ToList(),
-                    CompletedUserNames = t.TaskCompletions.Select(tc => tc.User.UserName).Where(s => s != null).ToList(),
+                    CompletedUserNames = t.TaskCompletions.Select(tc => tc.User?.UserName).Where(s => s != null).ToList()!,
                     CompletedUserIds = t.TaskCompletions.Select(tc => tc.UserId).ToList()
                 })
                 .ToListAsync();
@@ -78,7 +78,7 @@ namespace TaskManagementApp.Services
             return rootTasks.OrderByDescending(t => t.CreatedAt).ToList();
         }
 
-        public async Task<TaskItem> GetTaskByIdAsync(int id)
+        public async Task<TaskItem?> GetTaskByIdAsync(int id)
         {
             var task = await _context.Tasks
                 .Include(t => t.Project)
@@ -289,7 +289,7 @@ namespace TaskManagementApp.Services
             return model;
         }
 
-        public async Task<EditTaskViewModel> GetEditTaskViewModelAsync(int id)
+        public async Task<EditTaskViewModel?> GetEditTaskViewModelAsync(int id)
         {
             var task = await _context.Tasks
                 .Include(t => t.TaskAssignments)
