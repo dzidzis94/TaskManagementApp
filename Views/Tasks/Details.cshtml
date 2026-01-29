@@ -1,12 +1,12 @@
-@model TaskManagementApp.Models.TaskItem
+@model TaskManagementApp.ViewModels.TaskSummaryViewModel
 @using Microsoft.AspNetCore.Identity
 @inject UserManager<ApplicationUser> UserManager
 
 @{
     ViewData["Title"] = "Task Details";
     var currentUserId = UserManager.GetUserId(User);
-    var isAssigned = Model.TaskAssignments.Any(ta => ta.UserId == currentUserId);
-    var hasCompleted = Model.TaskCompletions.Any(tc => tc.UserId == currentUserId);
+    var isAssigned = Model.AssignedUserIds.Contains(currentUserId);
+    var hasCompleted = Model.CompletedUserIds.Contains(currentUserId);
     var canComplete = isAssigned && !hasCompleted;
 }
 
@@ -18,7 +18,7 @@
                 <ol class="breadcrumb bg-transparent p-0 m-0">
                     @if (Model.ProjectId.HasValue)
                     {
-                        <li class="breadcrumb-item"><a asp-controller="Projects" asp-action="Details" asp-route-id="@Model.ProjectId">@Model.Project?.Name</a></li>
+                        <li class="breadcrumb-item"><a asp-controller="Projects" asp-action="Details" asp-route-id="@Model.ProjectId">@Model.ProjectName</a></li>
                     }
                     else
                     {
@@ -68,7 +68,7 @@
                     <div class="col-md-6">
                         <div class="mb-2">
                             <strong style="color: var(--text-color);">Created by:</strong> <br>
-                            <i class="fas fa-user-edit me-2"></i> @Model.CreatedBy?.UserName
+                            <i class="fas fa-user-edit me-2"></i> @Model.CreatedByUserName
                         </div>
                         <div class="mb-2">
                             <strong style="color: var(--text-color);">Created at:</strong> <br>
@@ -98,7 +98,7 @@
                 @if (Model.SubTasks != null && Model.SubTasks.Any())
                 {
                     <div class="sub-tasks">
-                         @await Html.PartialAsync("_TaskList", Model.SubTasks.Select(MapToSummary))
+                         @await Html.PartialAsync("_TaskList", Model.SubTasks)
                     </div>
                 }
                 else
@@ -115,12 +115,12 @@
                     <h6 class="mb-0 fw-bold" style="color: var(--text-color);">Assigned Users</h6>
                 </div>
                 <ul class="list-group list-group-flush">
-                    @if (Model.TaskAssignments != null && Model.TaskAssignments.Any())
+                    @if (Model.AssignedUserNames != null && Model.AssignedUserNames.Any())
                     {
-                        @foreach (var assignment in Model.TaskAssignments)
+                        @foreach (var userName in Model.AssignedUserNames)
                         {
                             <li class="list-group-item bg-transparent" style="color: var(--text-color); border-bottom: 1px solid var(--border-color);">
-                                <i class="fas fa-user me-2 text-muted"></i> @assignment.User?.UserName
+                                <i class="fas fa-user me-2 text-muted"></i> @userName
                             </li>
                         }
                     }
@@ -136,12 +136,12 @@
                     <h6 class="mb-0 fw-bold" style="color: var(--text-color);">Completion History</h6>
                 </div>
                  <ul class="list-group list-group-flush">
-                    @if (Model.TaskCompletions != null && Model.TaskCompletions.Any())
+                    @if (Model.Completions != null && Model.Completions.Any())
                     {
-                        @foreach (var completion in Model.TaskCompletions.OrderByDescending(c => c.CompletionDate))
+                        @foreach (var completion in Model.Completions.OrderByDescending(c => c.CompletionDate))
                         {
                             <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center" style="color: var(--text-color); border-bottom: 1px solid var(--border-color);">
-                                <span><i class="fas fa-check text-success me-2"></i> @completion.User?.UserName</span>
+                                <span><i class="fas fa-check text-success me-2"></i> @completion.UserName</span>
                                 <small style="color: var(--text-muted);">@completion.CompletionDate.ToString("yyyy-MM-dd HH:mm")</small>
                             </li>
                         }
@@ -155,26 +155,3 @@
         </div>
     </div>
 </div>
-
-@functions {
-    TaskManagementApp.ViewModels.TaskSummaryViewModel MapToSummary(TaskManagementApp.Models.TaskItem task)
-    {
-        return new TaskManagementApp.ViewModels.TaskSummaryViewModel
-        {
-            Id = task.Id,
-            Title = task.Title,
-            Description = task.Description,
-            Status = task.Status,
-            Priority = task.Priority,
-            DueDate = task.DueDate,
-            ProjectId = task.ProjectId,
-            ParentTaskId = task.ParentTaskId,
-            CreatedAt = task.CreatedAt,
-            AssignedUserNames = task.TaskAssignments?.Where(ta => ta.User != null).Select(ta => ta.User.UserName).ToList() ?? new List<string>(),
-            AssignedUserIds = task.TaskAssignments?.Select(ta => ta.UserId).ToList() ?? new List<string>(),
-            CompletedUserNames = task.TaskCompletions?.Where(tc => tc.User != null).Select(tc => tc.User.UserName).ToList() ?? new List<string>(),
-            CompletedUserIds = task.TaskCompletions?.Select(tc => tc.UserId).ToList() ?? new List<string>(),
-            SubTasks = task.SubTasks?.Select(MapToSummary).ToList() ?? new List<TaskManagementApp.ViewModels.TaskSummaryViewModel>()
-        };
-    }
-}

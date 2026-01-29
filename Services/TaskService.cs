@@ -47,8 +47,10 @@ namespace TaskManagementApp.Services
                     Priority = t.Priority,
                     DueDate = t.DueDate,
                     ProjectId = t.ProjectId,
+                    ProjectName = t.Project != null ? t.Project.Name : null,
                     ParentTaskId = t.ParentTaskId,
                     CreatedAt = t.CreatedAt,
+                    CreatedByUserName = t.CreatedBy != null ? t.CreatedBy.UserName : null,
                     AssignedUserNames = t.TaskAssignments.Where(ta => ta.User != null).Select(ta => ta.User.UserName).ToList()!,
                     AssignedUserIds = t.TaskAssignments.Select(ta => ta.UserId).ToList(),
                     CompletedUserNames = t.TaskCompletions.Where(tc => tc.User != null).Select(tc => tc.User.UserName).ToList()!,
@@ -135,6 +137,57 @@ namespace TaskManagementApp.Services
             }
 
             return taskDictionary[task.Id];
+        }
+
+        public async Task<TaskSummaryViewModel?> GetTaskDetailsAsync(int id)
+        {
+            var task = await GetTaskByIdAsync(id);
+            if (task == null) return null;
+
+            return MapToTaskSummary(task);
+        }
+
+        private TaskSummaryViewModel MapToTaskSummary(TaskItem task)
+        {
+            var summary = new TaskSummaryViewModel
+            {
+                Id = task.Id,
+                Title = task.Title,
+                Description = task.Description,
+                Status = task.Status,
+                Priority = task.Priority,
+                DueDate = task.DueDate,
+                ProjectId = task.ProjectId,
+                ProjectName = task.Project?.Name,
+                ParentTaskId = task.ParentTaskId,
+                CreatedAt = task.CreatedAt,
+                CreatedByUserName = task.CreatedBy?.UserName,
+                AssignedUserNames = task.TaskAssignments?.Where(ta => ta.User != null).Select(ta => ta.User.UserName).ToList() ?? new List<string>(),
+                AssignedUserIds = task.TaskAssignments?.Select(ta => ta.UserId).ToList() ?? new List<string>(),
+                CompletedUserNames = task.TaskCompletions?.Where(tc => tc.User != null).Select(tc => tc.User.UserName).ToList() ?? new List<string>(),
+                CompletedUserIds = task.TaskCompletions?.Select(tc => tc.UserId).ToList() ?? new List<string>(),
+                Completions = task.TaskCompletions?.Where(tc => tc.User != null).Select(tc => new TaskCompletionViewModel
+                {
+                    UserName = tc.User.UserName,
+                    CompletionDate = tc.CompletionDate
+                }).ToList() ?? new List<TaskCompletionViewModel>()
+            };
+
+            // Recursively map children, filtering duplicates by ID
+            if (task.SubTasks != null && task.SubTasks.Any())
+            {
+                summary.SubTasks = task.SubTasks
+                    .DistinctBy(t => t.Id)
+                    .Select(MapToTaskSummary)
+                    .OrderByDescending(t => t.CreatedAt)
+                    .ToList();
+            }
+
+            // Calculate percentage
+            var (completed, total) = CalculateTaskCompletion(summary);
+            summary.CompletionPercentage = total > 0 ? (double)completed / total * 100 : 0;
+
+            return summary;
         }
 
         public async Task<TaskItem> CreateTaskAsync(CreateTaskViewModel model, string createdById)

@@ -58,7 +58,7 @@ namespace TaskManagementApp.Controllers
                 return NotFound();
             }
 
-            var task = await _taskService.GetTaskByIdAsync(id.Value);
+            var task = await _taskService.GetTaskDetailsAsync(id.Value);
             if (task == null)
             {
                 return NotFound();
