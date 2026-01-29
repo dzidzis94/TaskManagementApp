@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
@@ -15,12 +15,21 @@ namespace TaskManagementApp.Controllers
     {
         private readonly IProjectService _projectService;
         private readonly ITemplateService _templateService;
+
+        // 1. IZMAIŅA: Pievienojam TaskService, lai varētu ielādēt uzdevumus jaunajā formātā
+        private readonly ITaskService _taskService;
         private readonly ILogger<ProjectsController> _logger;
 
-        public ProjectsController(IProjectService projectService, ITemplateService templateService, ILogger<ProjectsController> logger)
+        // 2. IZMAIŅA: Pievienojam taskService konstruktorā
+        public ProjectsController(
+            IProjectService projectService,
+            ITemplateService templateService,
+            ITaskService taskService,
+            ILogger<ProjectsController> logger)
         {
             _projectService = projectService;
             _templateService = templateService;
+            _taskService = taskService;
             _logger = logger;
         }
 
@@ -44,6 +53,11 @@ namespace TaskManagementApp.Controllers
             {
                 return NotFound();
             }
+
+            // 3. IZMAIŅA: Šis salabo tavu kļūdu!
+            // Mēs palūdzam TaskService sagatavot datus (ar statusiem, krāsām un hierarhiju),
+            // un ieliekam tos ViewBag, ko gaida tavs skats.
+            ViewBag.ProjectTasks = await _taskService.GetTasksAsync(project.Id);
 
             return View(project);
         }
@@ -224,7 +238,6 @@ namespace TaskManagementApp.Controllers
                 }
             }
 
-            // If model state is invalid, re-populate the necessary data for the view
             var sourceProject = await _projectService.GetProjectByIdAsync(id);
             if (sourceProject == null)
             {
@@ -235,7 +248,6 @@ namespace TaskManagementApp.Controllers
 
             return View(viewModel);
         }
-
 
         // GET: Projects/GetTemplatePreview/5
         [HttpGet]

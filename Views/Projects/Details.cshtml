@@ -1,7 +1,10 @@
-@model TaskManagementApp.Models.Project
+﻿@model TaskManagementApp.Models.Project
+@using TaskManagementApp.ViewModels
 
 @{
     ViewData["Title"] = "Project Details";
+    // Šeit mēs paņemam tos smukos datus, ko sagatavoja Kontrolieris
+    var projectTasks = ViewBag.ProjectTasks as IEnumerable<TaskSummaryViewModel>;
 }
 
 <div class="container mt-4">
@@ -23,20 +26,22 @@
 
     <h3 class="mb-4" style="color: var(--text-color);">Tasks in this Project</h3>
 
-    @if (Model.Tasks != null && Model.Tasks.Any())
+    @* Šeit mēs pārbaudām jauno mainīgo 'projectTasks', nevis veco 'Model.Tasks' *@
+    @if (projectTasks != null && projectTasks.Any())
     {
-        <div id="task-list">
-            @* We will render the tasks here. Let's use a partial view for the task list. *@
-            @await Html.PartialAsync("_TaskList", Model.Tasks.Where(t => t.ParentTaskId == null).ToList())
-        </div>
+    <div id="task-list">
+        @* Mēs padodam 'projectTasks' pa taisno. *@
+        @* Nav vajadzīgs filtrēt 'Where', jo Serviss to jau izdarīja tavā vietā *@
+        @await Html.PartialAsync("_TaskList", projectTasks)
+    </div>
     }
     else
     {
-        <div class="task-item mt-3">
-            <div class="card-body text-center">
-                <p style="color: var(--text-muted);">No tasks have been created for this project yet.</p>
-            </div>
+    <div class="task-item mt-3">
+        <div class="card-body text-center">
+            <p style="color: var(--text-muted);">No tasks have been created for this project yet.</p>
         </div>
+    </div>
     }
 </div>
 
