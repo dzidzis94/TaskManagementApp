@@ -69,14 +69,15 @@ namespace TaskManagementApp.Services.Interfaces
         Task<EditTaskViewModel?> GetEditTaskViewModelAsync(int id);
 
         /// <summary>
-        /// Deep clones a task and its sub-tasks.
+        /// Deep clones a task and its sub-tasks using a memory-mapping strategy.
         /// </summary>
         /// <param name="sourceTaskId">The ID of the task to clone.</param>
         /// <param name="targetProjectId">Optional target project ID. If null, the source project ID is used.</param>
         /// <param name="userId">The ID of the user performing the clone.</param>
         /// <param name="newParentId">Optional new parent task ID for the cloned task.</param>
+        /// <param name="excludedTaskIds">Optional list of task IDs to exclude from the clone.</param>
         /// <returns>The ID of the newly created task.</returns>
-        Task<int> CloneTaskAsync(int sourceTaskId, int? targetProjectId, string userId, int? newParentId = null);
+        Task<int> CloneTaskTreeAsync(int sourceTaskId, int? targetProjectId, string userId, int? newParentId = null, List<int>? excludedTaskIds = null);
 
         /// <summary>
         /// Retrieves the task tree for editing.

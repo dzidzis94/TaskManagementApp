@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using TaskManagementApp.Models;
 using TaskManagementApp.Services.Interfaces;
@@ -227,7 +228,8 @@ namespace TaskManagementApp.Controllers
             {
                 try
                 {
-                    var newProject = await _templateService.CloneProjectAsync(id, viewModel.Name, viewModel.Description, excludedTaskIds);
+                    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                    var newProject = await _templateService.CloneProjectAsync(id, viewModel.Name, viewModel.Description, userId, excludedTaskIds);
                     TempData["SuccessMessage"] = "Project cloned successfully!";
                     return RedirectToAction(nameof(Details), new { id = newProject.Id });
                 }
