@@ -25,6 +25,13 @@ namespace TaskManagementApp.Services.Interfaces
         Task<TaskItem?> GetTaskByIdAsync(int id);
 
         /// <summary>
+        /// Retrieves detailed information about a task, including its sub-tasks and completions, mapped to a view model.
+        /// </summary>
+        /// <param name="id">The ID of the task to retrieve.</param>
+        /// <returns>The detailed task summary view model, or null if not found.</returns>
+        Task<TaskSummaryViewModel?> GetTaskDetailsAsync(int id);
+
+        /// <summary>
         /// Creates a new task based on the provided view model.
         /// </summary>
         /// <param name="model">The view model containing the data for the new task.</param>

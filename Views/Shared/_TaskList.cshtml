@@ -5,6 +5,10 @@
     {
         foreach (var task in Model)
         {
+            if (task.ParentTaskId != null && Model.Any(x => x.Id == task.ParentTaskId))
+            {
+                continue;
+            }
             @await Html.PartialAsync("_TaskCardPartial", task)
         }
     }
