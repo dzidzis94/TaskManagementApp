@@ -335,20 +335,37 @@ namespace TaskManagementApp.Services
             };
         }
 
-        public async Task<int> CloneTaskAsync(int sourceTaskId, int? targetProjectId, string userId, int? newParentId = null)
+        public async Task<int> CloneTaskTreeAsync(int sourceTaskId, int? targetProjectId, string userId, int? newParentId = null, List<int>? excludedTaskIds = null)
         {
-            var sourceTaskRoot = await GetTaskTreeAsNoTrackingAsync(sourceTaskId);
-            if (sourceTaskRoot == null) throw new ArgumentException("Task not found");
+            // A. Load the entire tree with AsNoTracking (Critical for breaking references)
+            var sourceTask = await _context.Tasks
+                .AsNoTracking()
+                .Include(t => t.SubTasks)
+                .Include(t => t.SubTasks).ThenInclude(st => st.SubTasks) // Support 3 levels deep
+                .Include(t => t.SubTasks).ThenInclude(st => st.SubTasks).ThenInclude(sst => sst.SubTasks) // Support 4 levels deep
+                .FirstOrDefaultAsync(t => t.Id == sourceTaskId);
 
+            if (sourceTask == null) throw new ArgumentException("Source task not found");
+
+            // B. Map to new structure in memory (Recursive)
+            var newTaskRoot = MapTaskRecursive(sourceTask, targetProjectId, userId, excludedTaskIds);
+
+            if (newTaskRoot == null) return -1;
+
+            // C. Set the top-level parent if this is a sub-branch clone
+            if (newParentId.HasValue) { newTaskRoot.ParentTaskId = newParentId; }
+
+            // D. Batch Save (One transaction for the whole tree)
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
-                    var newTaskId = await CloneTaskRecursiveAsync(sourceTaskRoot, targetProjectId, userId, newParentId);
+                    _context.Tasks.Add(newTaskRoot);
+                    await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
-                    return newTaskId;
+                    return newTaskRoot.Id;
                 }
-                catch (Exception)
+                catch
                 {
                     await transaction.RollbackAsync();
                     throw;
@@ -356,62 +373,48 @@ namespace TaskManagementApp.Services
             }
         }
 
-        private async Task<TaskItem?> GetTaskTreeAsNoTrackingAsync(int id)
+        private TaskItem? MapTaskRecursive(TaskItem source, int? targetProjectId, string userId, List<int>? excludedTaskIds)
         {
-            var task = await _context.Tasks
-                .AsNoTracking()
-                .FirstOrDefaultAsync(m => m.Id == id);
-
-            if (task == null) return null;
-
-            // Build the full hierarchy for the task using AsNoTracking to avoid tracking conflicts
-            var allTasksInContext = await _context.Tasks
-                .AsNoTracking()
-                .Where(t => t.ProjectId == task.ProjectId)
-                .ToListAsync();
-
-            var taskDictionary = allTasksInContext.ToDictionary(t => t.Id);
-
-            foreach (var subTask in allTasksInContext)
+            if (excludedTaskIds != null && excludedTaskIds.Contains(source.Id))
             {
-                if (subTask.ParentTaskId.HasValue && taskDictionary.TryGetValue(subTask.ParentTaskId.Value, out var parent))
-                {
-                    parent.SubTasks.Add(subTask);
-                }
+                return null;
             }
 
-            return taskDictionary[task.Id];
-        }
-
-        private async Task<int> CloneTaskRecursiveAsync(TaskItem sourceTask, int? targetProjectId, string userId, int? newParentId)
-        {
-            // Create a new object to ensure no tracking conflicts and Id is 0
             var newTask = new TaskItem
             {
-                Title = sourceTask.Title,
-                Description = sourceTask.Description,
-                Priority = sourceTask.Priority,
-                ProjectId = targetProjectId ?? sourceTask.ProjectId,
-                ParentTaskId = newParentId,
+                // Copy Data
+                Title = source.Title,
+                Description = source.Description,
+                Priority = source.Priority,
+                DueDate = null, // Reset dates for clones
+
+                // Reset Metadata
+                Id = 0, // Force EF to insert as new
+                ProjectId = targetProjectId ?? source.ProjectId,
                 CreatedById = userId,
                 CreatedAt = DateTime.UtcNow,
-                Status = Models.TaskStatus.Pending,
+                Status = Models.TaskStatus.Pending, // Always start as Pending/Draft
+
+                // Clean Relations
+                ParentTaskId = null, // Will be handled by EF via SubTasks collection
                 TaskAssignments = new List<TaskAssignment>(),
-                TaskCompletions = new List<TaskCompletion>()
+                TaskCompletions = new List<TaskCompletion>(),
+                SubTasks = new List<TaskItem>()
             };
 
-            _context.Tasks.Add(newTask);
-            await _context.SaveChangesAsync();
-
-            if (sourceTask.SubTasks != null)
+            // Recursively map children
+            if (source.SubTasks != null && source.SubTasks.Any())
             {
-                foreach (var subTask in sourceTask.SubTasks)
+                foreach (var child in source.SubTasks)
                 {
-                    await CloneTaskRecursiveAsync(subTask, targetProjectId, userId, newTask.Id);
+                    var newChild = MapTaskRecursive(child, targetProjectId, userId, excludedTaskIds);
+                    if (newChild != null)
+                    {
+                        newTask.SubTasks.Add(newChild);
+                    }
                 }
             }
-
-            return newTask.Id;
+            return newTask;
         }
 
         public async Task<TaskTreeEditViewModel?> GetTaskTreeForEditAsync(int rootTaskId)

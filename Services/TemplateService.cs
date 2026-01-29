@@ -13,10 +13,12 @@ namespace TaskManagementApp.Services
     public class TemplateService : ITemplateService
     {
         private readonly ApplicationDbContext _context;
+        private readonly ITaskService _taskService;
 
-        public TemplateService(ApplicationDbContext context)
+        public TemplateService(ApplicationDbContext context, ITaskService taskService)
         {
             _context = context;
+            _taskService = taskService;
         }
 
         public async Task<Project> GenerateProjectFromTemplateAsync(int templateId, Project targetProject)
@@ -97,7 +99,7 @@ namespace TaskManagementApp.Services
             return task;
         }
 
-        public async Task<Project> CloneProjectAsync(int sourceProjectId, string newProjectName, string newProjectDescription, List<int>? excludedTaskIds = null)
+        public async Task<Project> CloneProjectAsync(int sourceProjectId, string newProjectName, string newProjectDescription, string userId, List<int>? excludedTaskIds = null)
         {
             var sourceProject = await _context.Projects
                 .AsNoTracking()
@@ -128,56 +130,17 @@ namespace TaskManagementApp.Services
             // Build the hierarchy in memory
             var rootTasks = HierarchyHelper.BuildTaskHierarchy(allTasks);
 
-            var excludedTaskIdsSet = excludedTaskIds != null ? new HashSet<int>(excludedTaskIds) : new HashSet<int>();
-            var tasksToAdd = new List<TaskItem>();
             foreach (var task in rootTasks)
             {
-                var newTask = CreateTaskFromTaskRecursive(task, targetProject, null, excludedTaskIdsSet);
-                if (newTask != null)
+                if (excludedTaskIds != null && excludedTaskIds.Contains(task.Id))
                 {
-                    tasksToAdd.Add(newTask);
+                    continue;
                 }
-            }
 
-            _context.Tasks.AddRange(tasksToAdd);
-            await _context.SaveChangesAsync();
+                await _taskService.CloneTaskTreeAsync(task.Id, targetProject.Id, userId, null, excludedTaskIds);
+            }
 
             return targetProject;
-        }
-
-        private TaskItem? CreateTaskFromTaskRecursive(TaskItem sourceTask, Project project, TaskItem? parentTask, HashSet<int> excludedTaskIds)
-        {
-            if (excludedTaskIds.Contains(sourceTask.Id))
-            {
-                return null; // Skip this task and its entire subtree
-            }
-
-            var task = new TaskItem
-            {
-                Title = sourceTask.Title,
-                Description = sourceTask.Description,
-                Priority = sourceTask.Priority,
-                Status = TaskManagementApp.Models.TaskStatus.Pending, // Reset status to Pending
-                DueDate = sourceTask.DueDate,
-                Project = project,
-                ParentTask = parentTask,
-                SubTasks = new List<TaskItem>(),
-                TaskAssignments = new List<TaskAssignment>() // Do not copy assignees
-            };
-
-            if (sourceTask.SubTasks != null)
-            {
-                foreach (var childSourceTask in sourceTask.SubTasks)
-                {
-                    var childTask = CreateTaskFromTaskRecursive(childSourceTask, project, task, excludedTaskIds);
-                    if (childTask != null)
-                    {
-                        task.SubTasks.Add(childTask);
-                    }
-                }
-            }
-
-            return task;
         }
     }
 }

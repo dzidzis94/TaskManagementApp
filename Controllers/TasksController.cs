@@ -218,7 +218,7 @@ namespace TaskManagementApp.Controllers
             try
             {
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var newTaskId = await _taskService.CloneTaskAsync(id, null, userId);
+                var newTaskId = await _taskService.CloneTaskTreeAsync(id, null, userId);
                 TempData["SuccessMessage"] = "Task cloned successfully! You can now edit the task structure.";
                 return RedirectToAction(nameof(EditTree), new { id = newTaskId });
             }
