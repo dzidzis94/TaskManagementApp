@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -469,8 +469,13 @@ namespace TaskManagementApp.Services
                     var existingTasks = new Dictionary<int, TaskItem>();
                     FlattenTaskTreeToDictionary(rootTask, existingTasks);
 
-                    var submittedTaskIds = model.Tasks.Select(t => t.Id).ToHashSet();
-
+                    // Mēs paņemam tikai tos, kuri NAV atzīmēti kā dzēšami.
+                    // Tie, kas IR atzīmēti (IsDeleted=true), netiks iekļauti šajā sarakstā,
+                    // un nākamais koda bloks (tasksToDelete) tos automātiski izdzēsīs no datubāzes.
+                    var submittedTaskIds = model.Tasks
+                        .Where(t => !t.IsDeleted)
+                        .Select(t => t.Id)
+                        .ToHashSet();
                     // Delete tasks that are in DB but missing from submission.
                     var tasksToDelete = existingTasks.Values
                         .Where(t => !submittedTaskIds.Contains(t.Id) && t.Id != model.RootTaskId)

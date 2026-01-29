@@ -23,9 +23,10 @@
                 </div>
                 <div class="card-body">
                     <form asp-action="Clone" asp-route-id="@Model.SourceProjectId" method="post">
-                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                        <div asp-validation-summary="All" class="text-danger"></div>
 
                         <input type="hidden" asp-for="SourceProjectId" />
+                        <input type="hidden" asp-for="SourceProjectName" />
 
                         <div class="form-group mb-3">
                             <label asp-for="Name" class="control-label" style="color: var(--text-color);">New Project Name</label>
@@ -48,7 +49,7 @@
                             <ul>
                                 @foreach (var task in Model.Tasks)
                                 {
-                                    <partial name="_CloneTaskTree" model="task" />
+                                <partial name="_CloneTaskTree" model="task" />
                                 }
                             </ul>
                         </div>

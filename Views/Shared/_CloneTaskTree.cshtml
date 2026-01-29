@@ -1,15 +1,28 @@
-@model TaskManagementApp.Models.TaskItem
+﻿@model TaskManagementApp.ViewModels.TaskSummaryViewModel
 
-<li>
-    <input type="checkbox" name="excludedTaskIds" value="@Model.Id" id="task-@Model.Id" />
-    <label for="task-@Model.Id">@Model.Title</label>
+<li class="mb-1">
+    <div class="form-check">
+        @* SVARĪGI:
+            name="excludedTaskIds" - lai kontrolieris saņemtu sarakstu.
+            value="@Model.Id" - lai zinātu, kuru ID izslēgt.
+        *@
+        <input class="form-check-input" type="checkbox" name="excludedTaskIds" value="@Model.Id" id="exclude_@Model.Id">
+
+        <label class="form-check-label" for="exclude_@Model.Id" style="cursor: pointer;">
+            @Model.Title
+            @* Pievienojam statusu maziem burtiem, lai ir informatīvāk *@
+            <small class="text-muted ms-2" style="font-size: 0.85em;">(@Model.Status)</small>
+        </label>
+    </div>
+
+    @* Rekursija: Ja ir apakšuzdevumi, zīmējam jaunu sarakstu *@
     @if (Model.SubTasks != null && Model.SubTasks.Any())
     {
-        <ul>
-            @foreach (var subTask in Model.SubTasks)
+    <ul style="list-style-type: none; padding-left: 20px; border-left: 1px solid var(--border-color);">
+        @foreach (var subTask in Model.SubTasks)
             {
-                <partial name="_CloneTaskTree" model="subTask" />
+        <partial name="_CloneTaskTree" model="subTask" />
             }
-        </ul>
+    </ul>
     }
 </li>

@@ -1,5 +1,6 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+// Pievienojam šo, lai kods atpazītu TaskItem (ja nu tomēr kaut kur vajag) un ViewModelus
 using TaskManagementApp.Models;
 
 namespace TaskManagementApp.ViewModels
@@ -17,6 +18,8 @@ namespace TaskManagementApp.ViewModels
         [StringLength(500, ErrorMessage = "The {0} must be at max {1} characters long.")]
         public string Description { get; set; }
 
-        public List<TaskItem> Tasks { get; set; } = new List<TaskItem>();
+        // --- LABOJUMS IR ŠEIT ---
+        // Nomainām List<TaskItem> uz List<TaskSummaryViewModel>
+        public List<TaskSummaryViewModel> Tasks { get; set; } = new List<TaskSummaryViewModel>();
     }
 }

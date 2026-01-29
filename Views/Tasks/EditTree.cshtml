@@ -1,75 +1,96 @@
-@model TaskManagementApp.ViewModels.TaskTreeEditViewModel
+﻿@model TaskManagementApp.ViewModels.TaskTreeEditViewModel
 
 @{
     ViewData["Title"] = "Edit Task Tree";
 }
 
 <div class="container mt-4">
-    <h2 class="mb-4">Edit Task Tree: @Model.RootTaskTitle</h2>
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-0 fs-5"><i class="fas fa-network-wired me-2"></i>Edit Structure: @Model.RootTaskTitle</h3>
+                <small class="text-white-50">Review the cloned hierarchy. Mark items to delete.</small>
+            </div>
+            <span class="badge bg-light text-primary">@Model.Tasks.Count tasks</span>
+        </div>
 
-    <div class="alert alert-info">
-        <i class="fas fa-info-circle me-2"></i> You can edit titles and descriptions of the entire task tree below. Use the "Delete" button to remove unwanted sub-tasks.
-    </div>
+        <div class="card-body p-0">
+            <form asp-action="EditTree" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="RootTaskId" />
+                <input type="hidden" asp-for="RootTaskTitle" />
 
-    <form asp-action="EditTree" method="post">
-        @Html.AntiForgeryToken()
-        <input type="hidden" asp-for="RootTaskId" />
-        <input type="hidden" asp-for="RootTaskTitle" />
-
-        <div class="list-group mb-4">
-            @for (int i = 0; i < Model.Tasks.Count; i++)
-            {
-                var item = Model.Tasks[i];
-                <div class="list-group-item task-row" id="task-row-@i" style="margin-left: @(item.Depth * 20)px;">
-                    <div class="row align-items-center">
-                        <!-- Hidden inputs for binding -->
-                        <input type="hidden" name="Tasks.Index" value="@i" />
-                        <input type="hidden" name="Tasks[@i].Id" value="@item.Id" />
-                        <input type="hidden" name="Tasks[@i].ParentTaskId" value="@item.ParentTaskId" />
-                        <input type="hidden" name="Tasks[@i].Depth" value="@item.Depth" />
-
-                        <div class="col-md-4">
-                            <label class="form-label small text-muted">Title</label>
-                            <input type="text" name="Tasks[@i].Title" value="@item.Title" class="form-control" required />
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label small text-muted">Description</label>
-                            <textarea name="Tasks[@i].Description" class="form-control" rows="1">@item.Description</textarea>
-                        </div>
-
-                        <div class="col-md-2 text-end">
-                            @if (item.Id == Model.RootTaskId)
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light text-muted text-uppercase small font-weight-bold">
+                            <tr>
+                                <th style="width: 45%; padding-left: 1.5rem;">Task Title</th>
+                                <th style="width: 40%">Description</th>
+                                <th style="width: 15%" class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < Model.Tasks.Count; i++)
                             {
-                                <span class="badge bg-primary">Root</span>
+                            @* Slēptie lauki datu saglabāšanai *@
+                            <input type="hidden" asp-for="Tasks[i].Id" />
+                            <input type="hidden" asp-for="Tasks[i].ParentTaskId" />
+                            <input type="hidden" asp-for="Tasks[i].Depth" />
+
+                            @* Rinda iekrāsojas sarkana, ja IsDeleted ir true *@
+                            <tr class="transition-all @(Model.Tasks[i].IsDeleted ? "table-danger text-muted" : "")" id="row_@i">
+                                <td class="py-3">
+                                    @* Trepītes zīmēšana *@
+                                    <div style="padding-left: @(Model.Tasks[i].Depth * 30)px; position: relative;">
+                                        @if(Model.Tasks[i].Depth > 0)
+                                            {
+                                        <i class="fas fa-level-up-alt fa-rotate-90 text-muted me-2 opacity-50"></i>
+                                            }
+                                        <input asp-for="Tasks[i].Title" class="form-control form-control-sm d-inline-block shadow-none fw-bold"
+                                               style="width: auto; min-width: 250px; border: 1px solid transparent; background: transparent;"
+                                               onfocus="this.style.background='var(--bs-body-bg)'; this.style.borderColor='var(--bs-border-color)';"
+                                               onblur="this.style.background='transparent'; this.style.borderColor='transparent';" />
+                                    </div>
+                                </td>
+                                <td>
+                                    <input asp-for="Tasks[i].Description" class="form-control form-control-sm border-0 bg-transparent shadow-none" placeholder="Description..." />
+                                </td>
+                                <td class="text-center">
+                                    <div class="form-check form-switch d-flex justify-content-center">
+                                        @* Checkbox, kas kontrolē IsDeleted *@
+                                        <input class="form-check-input bg-danger border-danger" type="checkbox" asp-for="Tasks[i].IsDeleted"
+                                               id="delete_@i"
+                                               onchange="toggleDeleteRow(@i, this.checked)">
+                                        <label class="form-check-label ms-2 text-danger small" for="delete_@i">Delete</label>
+                                    </div>
+                                </td>
+                            </tr>
                             }
-                            else
-                            {
-                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeTask(@i)">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            }
-                        </div>
-                    </div>
+                        </tbody>
+                    </table>
                 </div>
-            }
-        </div>
 
-        <div class="d-flex justify-content-between">
-            <a asp-action="Details" asp-route-id="@Model.RootTaskId" class="btn btn-secondary">Cancel</a>
-            <button type="submit" class="btn btn-success"><i class="fas fa-save me-2"></i> Save Changes</button>
+                <div class="card-footer bg-white p-3 d-flex justify-content-end gap-2 border-top">
+                    <a asp-controller="Tasks" asp-action="Details" asp-route-id="@Model.RootTaskId" class="btn btn-outline-secondary">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-success px-4">
+                        <i class="fas fa-check me-2"></i>Confirm & Save
+                    </button>
+                </div>
+            </form>
         </div>
-    </form>
+    </div>
 </div>
 
 @section Scripts {
     <script>
-        function removeTask(index) {
-            if (confirm('Are you sure you want to delete this task? It will be removed when you save.')) {
-                var row = document.getElementById('task-row-' + index);
-                if (row) {
-                    row.remove();
-                }
+        function toggleDeleteRow(index, isChecked) {
+            var row = document.getElementById('row_' + index);
+            if (isChecked) {
+                row.classList.add('table-danger', 'text-muted');
+            } else {
+                row.classList.remove('table-danger', 'text-muted');
             }
         }
     </script>
